@@ -1,0 +1,47 @@
+
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+
+# Python virtual environments
+.venv/
+**/.venv/
+venv/
+**/venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Node.js dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Build output
+dist/
+build/
+coverage/
+htmlcov/
+
+# IDE and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Local Salesforce configuration
+.sf/
