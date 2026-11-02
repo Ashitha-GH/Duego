@@ -888,11 +888,12 @@ def analyze_document(
         ):
             raise ValueError("Gemini returned incomplete analysis")
 
-    except Exception:
+    except Exception as e:
+        print("GEMINI ANALYSIS ERROR:", repr(e))
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="AI document analysis failed. Please try again.",
-        )
+            )
 
     # Save AI analysis in Supabase
     analysis = models.DocumentAnalysis(
