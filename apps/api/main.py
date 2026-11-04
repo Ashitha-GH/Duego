@@ -51,7 +51,7 @@ if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY is missing from the .env file")
 
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 
@@ -107,14 +107,12 @@ def extract_document_text(file_path: str) -> str:
 # =========================================================
 
 def generate_document_analysis(extracted_text: str) -> dict:
-
     prompt = f"""
     You are an AI business document analyst.
 
     Analyze the following business document.
 
     Return ONLY valid JSON in this exact format:
-
     {{
         "summary": "A clear summary of the document",
         "risk_level": "LOW, MEDIUM, or HIGH",
@@ -135,12 +133,18 @@ def generate_document_analysis(extracted_text: str) -> dict:
     response = gemini_client.models.generate_content(
         model=GEMINI_MODEL,
         contents=prompt,
-        config={
-            "response_mime_type": "application/json"
-        },
+        config={"response_mime_type": "application/json"},
     )
 
-    return json.loads(response.text)
+    if not response.text:
+        raise ValueError("Gemini returned an empty response")
+
+    result = json.loads(response.text)
+
+    if not isinstance(result, dict):
+        raise ValueError("Gemini returned an invalid response")
+
+    return result
 
 # =========================================================
 # FASTAPI APP
@@ -1396,6 +1400,8 @@ def get_payment_risk_summary(
         "low_risk": low,
         "no_risk": none,
     }
+
+
 # =========================================================
 # GET DASHBOARD SUMMARY
 # =========================================================
@@ -1407,9 +1413,7 @@ def get_dashboard_summary(
 ):
     documents = (
         db.query(models.Document)
-        .filter(
-            models.Document.user_id == current_user.id
-        )
+        .filter(models.Document.user_id == current_user.id)
         .all()
     )
 
@@ -1419,114 +1423,93 @@ def get_dashboard_summary(
             models.Document,
             models.Payment.document_id == models.Document.id,
         )
+        .filter(models.Document.user_id == current_user.id)
+        .all()
+    )
+
+    today = datetime.now(timezone.utc).date()
+
+    document_summary = {
+        "total": len(documents),
+        "active": 0,
+        "due_soon": 0,
+        "expired": 0,
+        "no_deadline": 0,
+    }
+
+    for document in documents:
+        if document.expiry_date is None:
+            document_summary["no_deadline"] += 1
+        elif document.expiry_date < today:
+            document_summary["expired"] += 1
+        else:
+            document_summary["active"] += 1
+            if (document.expiry_date - today).days <= 30:
+                document_summary["due_soon"] += 1
+
+    payment_summary = {
+        "total": len(payments),
+        "paid": 0,
+        "pending": 0,
+        "due_soon": 0,
+        "overdue": 0,
+    }
+
+    for payment in payments:
+        if payment.status.upper() == "PAID":
+            payment_summary["paid"] += 1
+        elif payment.due_date < today:
+            payment_summary["overdue"] += 1
+        else:
+            payment_summary["pending"] += 1
+            if (payment.due_date - today).days <= 30:
+                payment_summary["due_soon"] += 1
+
+    return {
+        "documents": document_summary,
+        "payments": payment_summary,
+    }
+
+
+
+# =========================================================
+# GET AI DASHBOARD SUMMARY
+# =========================================================
+
+@app.get("/dashboard/ai-summary")
+def get_ai_dashboard_summary(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    analyses = (
+        db.query(models.DocumentAnalysis)
+        .join(
+            models.Document,
+            models.DocumentAnalysis.document_id == models.Document.id,
+        )
         .filter(
             models.Document.user_id == current_user.id
         )
         .all()
     )
 
-    today = datetime.now(timezone.utc).date()
-
-    # -------------------------
-    # DOCUMENT SUMMARY
-    # -------------------------
-
-    document_active = 0
-    document_due_soon = 0
-    document_expired = 0
-    document_no_deadline = 0
-
-    for document in documents:
-
-        if document.expiry_date is None:
-            document_no_deadline += 1
-            continue
-
-        days_remaining = (
-            document.expiry_date - today
-        ).days
-
-        if days_remaining < 0:
-            document_expired += 1
-
-        elif days_remaining <= 30:
-            document_due_soon += 1
-
-        else:
-            document_active += 1
-
-    # -------------------------
-    # PAYMENT SUMMARY
-    # -------------------------
-
-    payment_paid = 0
-    payment_pending = 0
-    payment_due_soon = 0
-    payment_overdue = 0
-
-    payment_high_risk = 0
-    payment_medium_risk = 0
-    payment_low_risk = 0
-    payment_no_risk = 0
-
-    for payment in payments:
-
-        if payment.status == "PAID":
-            payment_paid += 1
-            payment_no_risk += 1
-            continue
-
-        days_remaining = (
-            payment.due_date - today
-        ).days
-
-        # Payment status
-
-        if days_remaining < 0:
-            payment_overdue += 1
-
-        elif days_remaining <= 7:
-            payment_due_soon += 1
-
-        else:
-            payment_pending += 1
-
-        # Payment risk
-
-        if days_remaining < 0:
-            payment_high_risk += 1
-
-        elif days_remaining <= 7:
-            payment_medium_risk += 1
-
-        elif days_remaining <= 30:
-            payment_low_risk += 1
-
-        else:
-            payment_no_risk += 1
-
     return {
-        "documents": {
-            "total": len(documents),
-            "active": document_active,
-            "due_soon": document_due_soon,
-            "expired": document_expired,
-            "no_deadline": document_no_deadline,
-        },
-        "payments": {
-            "total": len(payments),
-            "paid": payment_paid,
-            "pending": payment_pending,
-            "due_soon": payment_due_soon,
-            "overdue": payment_overdue,
-        },
-        "payment_risk": {
-            "high": payment_high_risk,
-            "medium": payment_medium_risk,
-            "low": payment_low_risk,
-            "none": payment_no_risk,
-        },
+        "total_analyzed": len(analyses),
+        "high_risk": sum(
+            1 for item in analyses
+            if (item.risk_level or "").upper() == "HIGH"
+        ),
+        "medium_risk": sum(
+            1 for item in analyses
+            if (item.risk_level or "").upper() == "MEDIUM"
+        ),
+        "low_risk": sum(
+            1 for item in analyses
+            if (item.risk_level or "").upper() == "LOW"
+        ),
     }
+
+
 
 # =========================================================
 # GET UPCOMING ALERTS

@@ -1,0 +1,80 @@
+# FREELANCE WEBSITE DEVELOPMENT AGREEMENT
+
+**Document Type:** Freelance Service Agreement  
+**Agreement Date:** 1 November 2026
+
+## 1. Parties
+
+**Client:** ABC Solutions Pvt. Ltd.  
+**Freelancer:** John Smith  
+**Project:** Business Website Development
+
+## 2. Project Scope
+
+The freelancer agrees to design and develop a business website containing:
+- Home page
+- About Us page
+- Services page
+- Contact page
+- Responsive mobile design
+
+Any additional features will require separate approval and payment.
+
+## 3. Project Payment
+
+The total project cost is **₹80,000**.
+
+The payment schedule is:
+- 40% advance payment: ₹32,000 before project commencement.
+- 40% milestone payment: ₹32,000 after completion of the website design.
+- 20% final payment: ₹16,000 after final delivery.
+
+## 4. Payment Due Date
+
+The client must pay each invoice within **15 days** of receiving it.
+
+## 5. Late Payment Penalty
+
+If payment is delayed beyond the due date, the freelancer may charge a late payment fee of 2% per month on the outstanding amount.
+
+## 6. Project Deadline
+
+The freelancer agrees to complete the project by **30 November 2026**.
+
+Delays caused by the client, including late content delivery or delayed approvals, may extend the project deadline.
+
+## 7. Client Responsibilities
+
+The client must:
+- Provide website content, images, and branding materials.
+- Review project milestones.
+- Provide feedback within five working days.
+
+## 8. Freelancer Responsibilities
+
+The freelancer must:
+- Develop the website according to the agreed scope.
+- Provide regular project updates.
+- Fix bugs identified within 15 days after delivery.
+
+## 9. Project Changes
+
+Any changes outside the agreed scope may involve additional charges and revised deadlines. The freelancer must obtain client approval before beginning additional work.
+
+## 10. Termination
+
+Either party may terminate this agreement by providing seven days' written notice.
+
+The client must pay for all completed work and approved expenses up to the termination date.
+
+## 11. Dispute Resolution
+
+Both parties agree to attempt to resolve disputes through mutual discussion before pursuing other remedies.
+
+## 12. Acceptance
+
+Both parties acknowledge that they have read and agreed to the terms of this agreement.
+
+**Client Signature:** ____________________
+
+**Freelancer Signature:** ____________________
