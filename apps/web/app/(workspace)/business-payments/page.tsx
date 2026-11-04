@@ -13,12 +13,15 @@ import {
   Receipt,
   X,
   Eye,
-  Plus,
   Building2,
   ShieldCheck,
-  CalendarDays,
   RefreshCw,
-  ArrowUpRight,
+  Smartphone,
+  QrCode,
+  CreditCard,
+  ArrowRight,
+  ChevronRight,
+  Info,
 } from "lucide-react";
 
 type PaymentStatus = "Paid" | "Pending" | "Overdue";
@@ -35,6 +38,14 @@ type Payment = {
   status: PaymentStatus;
 };
 
+type PaymentMethod =
+  | "PhonePe"
+  | "Google Pay"
+  | "Paytm"
+  | "Other UPI"
+  | "UPI QR Code"
+  | "Gateway Checkout";
+
 const initialPayments: Payment[] = [
   {
     id: "PAY-1001",
@@ -43,7 +54,7 @@ const initialPayments: Payment[] = [
     category: "Tax",
     amount: 25000,
     dueDate: "2026-11-05",
-    method: "Bank Transfer",
+    method: "Not selected",
     status: "Pending",
   },
   {
@@ -53,7 +64,7 @@ const initialPayments: Payment[] = [
     category: "Business Expense",
     amount: 18000,
     dueDate: "2026-11-07",
-    method: "UPI",
+    method: "Not selected",
     status: "Pending",
   },
   {
@@ -74,7 +85,7 @@ const initialPayments: Payment[] = [
     category: "Insurance",
     amount: 12000,
     dueDate: "2026-10-25",
-    method: "Bank Transfer",
+    method: "Not selected",
     status: "Overdue",
   },
   {
@@ -84,7 +95,7 @@ const initialPayments: Payment[] = [
     category: "Vendor",
     amount: 15000,
     dueDate: "2026-11-12",
-    method: "Bank Transfer",
+    method: "Not selected",
     status: "Pending",
   },
   {
@@ -120,22 +131,94 @@ const statusStyles: Record<PaymentStatus, string> = {
   Overdue: "bg-[#FEE2E2] text-[#991B1B]",
 };
 
+const paymentMethods: {
+  name: PaymentMethod;
+  description: string;
+  icon: typeof Smartphone;
+  category: "upi" | "other";
+}[] = [
+  {
+    name: "PhonePe",
+    description: "Continue using PhonePe",
+    icon: Smartphone,
+    category: "upi",
+  },
+  {
+    name: "Google Pay",
+    description: "Continue using Google Pay",
+    icon: Smartphone,
+    category: "upi",
+  },
+  {
+    name: "Paytm",
+    description: "Continue using Paytm",
+    icon: Smartphone,
+    category: "upi",
+  },
+  {
+    name: "Other UPI",
+    description: "Choose another UPI application",
+    icon: Wallet,
+    category: "upi",
+  },
+  {
+    name: "UPI QR Code",
+    description: "Scan using your mobile phone",
+    icon: QrCode,
+    category: "other",
+  },
+  {
+    name: "Gateway Checkout",
+    description: "Continue through secure checkout",
+    icon: CreditCard,
+    category: "other",
+  },
+];
+
 export default function BusinessPaymentsPage() {
-  const [payments, setPayments] = useState(initialPayments);
+  const [payments] = useState(initialPayments);
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
+
   const [selectedPayment, setSelectedPayment] =
     useState<Payment | null>(null);
+
+  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
+
+  const [selectedMethod, setSelectedMethod] =
+    useState<PaymentMethod | null>(null);
+
   const [notice, setNotice] = useState("");
 
-  const paidPayments = payments.filter((p) => p.status === "Paid");
-  const pendingPayments = payments.filter((p) => p.status === "Pending");
-  const overduePayments = payments.filter((p) => p.status === "Overdue");
+  const paidPayments = payments.filter(
+    (payment) => payment.status === "Paid"
+  );
 
-  const totalPaid = paidPayments.reduce((sum, p) => sum + p.amount, 0);
-  const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
-  const totalOverdue = overduePayments.reduce((sum, p) => sum + p.amount, 0);
+  const pendingPayments = payments.filter(
+    (payment) => payment.status === "Pending"
+  );
+
+  const overduePayments = payments.filter(
+    (payment) => payment.status === "Overdue"
+  );
+
+  const totalPaid = paidPayments.reduce(
+    (sum, payment) => sum + payment.amount,
+    0
+  );
+
+  const totalPending = pendingPayments.reduce(
+    (sum, payment) => sum + payment.amount,
+    0
+  );
+
+  const totalOverdue = overduePayments.reduce(
+    (sum, payment) => sum + payment.amount,
+    0
+  );
+
   const totalOutstanding = totalPending + totalOverdue;
 
   const filteredPayments = useMemo(() => {
@@ -150,31 +233,20 @@ export default function BusinessPaymentsPage() {
         .includes(search.toLowerCase());
 
       const matchesStatus =
-        statusFilter === "All" || payment.status === statusFilter;
+        statusFilter === "All" ||
+        payment.status === statusFilter;
 
       const matchesCategory =
-        categoryFilter === "All" || payment.category === categoryFilter;
+        categoryFilter === "All" ||
+        payment.category === categoryFilter;
 
-      return matchesSearch && matchesStatus && matchesCategory;
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesCategory
+      );
     });
   }, [payments, search, statusFilter, categoryFilter]);
-
-  function markAsPaid(id: string) {
-    setPayments((current) =>
-      current.map((payment) =>
-        payment.id === id
-          ? {
-              ...payment,
-              status: "Paid",
-              paidDate: new Date().toISOString().slice(0, 10),
-            }
-          : payment
-      )
-    );
-
-    setSelectedPayment(null);
-    setNotice("Payment status updated in this temporary preview.");
-  }
 
   function resetFilters() {
     setSearch("");
@@ -182,21 +254,41 @@ export default function BusinessPaymentsPage() {
     setCategoryFilter("All");
   }
 
+  function openPaymentMethods(payment: Payment) {
+    setSelectedPayment(payment);
+    setSelectedMethod(null);
+    setShowPaymentMethods(true);
+    setNotice("");
+  }
+
+  function closePaymentMethods() {
+    setShowPaymentMethods(false);
+    setSelectedMethod(null);
+  }
+
+  function selectPaymentMethod(method: PaymentMethod) {
+    setSelectedMethod(method);
+  }
+
   return (
     <div className="space-y-7 pb-10">
-      {/* Header */}
+      {/* PAGE HEADER */}
+
       <section className="overflow-hidden rounded-3xl bg-[#142B4A] p-7 text-white md:p-9">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
           <div>
             <p className="text-sm font-semibold text-[#93C5FD]">
               FINANCIAL MANAGEMENT
             </p>
+
             <h1 className="mt-3 text-3xl font-bold tracking-tight">
               Business Payments
             </h1>
+
             <p className="mt-2 max-w-xl text-sm leading-6 text-[#DBEAFE]">
-              Track business expenses, vendor bills, taxes and payment
-              responsibilities in one place.
+              Manage business expenses, vendor bills, taxes and
+              payment responsibilities. Choose your preferred
+              payment application directly from Duego.
             </p>
           </div>
 
@@ -206,20 +298,30 @@ export default function BusinessPaymentsPage() {
         </div>
       </section>
 
-      {/* Preview notice */}
+      {/* PREVIEW NOTICE */}
+
       <div className="flex items-start gap-3 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] p-4 dark:border-[#263D60] dark:bg-[#142B4A]">
-        <ShieldCheck size={20} className="mt-0.5 shrink-0 text-[#2563EB]" />
+        <ShieldCheck
+          size={20}
+          className="mt-0.5 shrink-0 text-[#2563EB]"
+        />
+
         <p className="text-sm leading-6 text-[#142B4A] dark:text-[#DBEAFE]">
-          <strong>Preview mode:</strong> These are sample payment records.
-          Marking a payment as paid only updates the temporary page state.
-          No money is transferred or collected.
+          <strong>Payment navigation preview:</strong> Payment
+          records and payment selection are currently demonstration
+          data. Actual UPI app navigation, QR generation and gateway
+          checkout will be activated after backend integration.
         </p>
       </div>
+
+      {/* NOTIFICATION */}
 
       {notice && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] p-3 text-sm text-[#142B4A] dark:border-[#263D60] dark:bg-[#142B4A] dark:text-white">
           <span>{notice}</span>
+
           <button
+            type="button"
             onClick={() => setNotice("")}
             aria-label="Dismiss message"
             className="rounded-lg p-1 text-[#142B4A] hover:bg-[#DBEAFE] dark:text-white dark:hover:bg-[#203D65]"
@@ -229,12 +331,14 @@ export default function BusinessPaymentsPage() {
         </div>
       )}
 
-      {/* Summary cards */}
+      {/* PAYMENT OVERVIEW */}
+
       <section>
         <div className="mb-4">
           <h2 className="text-lg font-bold text-[#142B4A] dark:text-white">
             Payment Overview
           </h2>
+
           <p className="mt-1 text-sm text-[#58708F] dark:text-[#A9BEDA]">
             Summary of your business payment responsibilities.
           </p>
@@ -266,7 +370,9 @@ export default function BusinessPaymentsPage() {
             {
               label: "Total Outstanding",
               value: money(totalOutstanding),
-              count: `${pendingPayments.length + overduePayments.length} unpaid records`,
+              count: `${
+                pendingPayments.length + overduePayments.length
+              } unpaid records`,
               icon: Wallet,
               color: "bg-[#DBEAFE] text-[#1D4ED8]",
             },
@@ -285,13 +391,16 @@ export default function BusinessPaymentsPage() {
                   <span className="text-sm font-medium text-[#58708F] dark:text-[#A9BEDA]">
                     {item.label}
                   </span>
+
                   <span className={`rounded-xl p-2.5 ${item.color}`}>
                     <Icon size={20} />
                   </span>
                 </div>
+
                 <p className="mt-4 break-words text-2xl font-bold text-[#142B4A] dark:text-white">
                   {item.value}
                 </p>
+
                 <p className="mt-2 text-xs text-[#58708F] dark:text-[#A9BEDA]">
                   {item.count}
                 </p>
@@ -301,17 +410,20 @@ export default function BusinessPaymentsPage() {
         </div>
       </section>
 
-      {/* Status distribution */}
+      {/* PAYMENT DISTRIBUTION */}
+
       <section className="rounded-2xl border border-[#D7E6F8] bg-white p-5 dark:border-[#263D60] dark:bg-[#142B4A]">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
             <h2 className="font-bold text-[#142B4A] dark:text-white">
               Payment Status Distribution
             </h2>
+
             <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
               Current status of sample business payments.
             </p>
           </div>
+
           <span className="text-sm font-semibold text-[#142B4A] dark:text-white">
             {payments.length} records
           </span>
@@ -323,19 +435,27 @@ export default function BusinessPaymentsPage() {
               <div
                 className="bg-[#16A34A]"
                 style={{
-                  width: `${(paidPayments.length / payments.length) * 100}%`,
+                  width: `${
+                    (paidPayments.length / payments.length) * 100
+                  }%`,
                 }}
               />
+
               <div
                 className="bg-[#D6A84B]"
                 style={{
-                  width: `${(pendingPayments.length / payments.length) * 100}%`,
+                  width: `${
+                    (pendingPayments.length / payments.length) * 100
+                  }%`,
                 }}
               />
+
               <div
                 className="bg-[#DC2626]"
                 style={{
-                  width: `${(overduePayments.length / payments.length) * 100}%`,
+                  width: `${
+                    (overduePayments.length / payments.length) * 100
+                  }%`,
                 }}
               />
             </>
@@ -344,12 +464,28 @@ export default function BusinessPaymentsPage() {
 
         <div className="mt-4 flex flex-wrap gap-5">
           {[
-            { label: "Paid", color: "bg-[#16A34A]", count: paidPayments.length },
-            { label: "Pending", color: "bg-[#D6A84B]", count: pendingPayments.length },
-            { label: "Overdue", color: "bg-[#DC2626]", count: overduePayments.length },
+            {
+              label: "Paid",
+              color: "bg-[#16A34A]",
+              count: paidPayments.length,
+            },
+            {
+              label: "Pending",
+              color: "bg-[#D6A84B]",
+              count: pendingPayments.length,
+            },
+            {
+              label: "Overdue",
+              color: "bg-[#DC2626]",
+              count: overduePayments.length,
+            },
           ].map((item) => (
-            <div key={item.label} className="flex items-center gap-2">
+            <div
+              key={item.label}
+              className="flex items-center gap-2"
+            >
               <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
+
               <span className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
                 {item.label}: {item.count}
               </span>
@@ -358,13 +494,15 @@ export default function BusinessPaymentsPage() {
         </div>
       </section>
 
-      {/* Payment records */}
+      {/* BUSINESS PAYMENT RECORDS */}
+
       <section className="overflow-hidden rounded-2xl border border-[#D7E6F8] bg-white dark:border-[#263D60] dark:bg-[#142B4A]">
         <div className="flex flex-col justify-between gap-4 border-b border-[#D7E6F8] p-5 dark:border-[#263D60] lg:flex-row lg:items-center">
           <div>
             <h2 className="font-bold text-[#142B4A] dark:text-white">
               Business Payment Records
             </h2>
+
             <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
               {filteredPayments.length} payment(s) displayed
             </p>
@@ -373,6 +511,7 @@ export default function BusinessPaymentsPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] px-3 dark:border-[#263D60]">
               <Search size={17} className="text-[#2563EB]" />
+
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -383,6 +522,7 @@ export default function BusinessPaymentsPage() {
 
             <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] px-3 dark:border-[#263D60]">
               <Filter size={16} className="text-[#2563EB]" />
+
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
@@ -410,6 +550,7 @@ export default function BusinessPaymentsPage() {
             </select>
 
             <button
+              type="button"
               onClick={resetFilters}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] px-3 text-sm font-semibold text-[#142B4A] hover:bg-[#DBEAFE] dark:border-[#263D60] dark:bg-[#203D65] dark:text-white"
             >
@@ -429,10 +570,12 @@ export default function BusinessPaymentsPage() {
                 <div className="rounded-xl bg-[#DBEAFE] p-3 text-[#2563EB]">
                   <Receipt size={21} />
                 </div>
+
                 <div>
                   <p className="text-sm font-semibold text-[#142B4A] dark:text-white">
                     {payment.title}
                   </p>
+
                   <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
                     {payment.reference} · {payment.category}
                   </p>
@@ -444,6 +587,7 @@ export default function BusinessPaymentsPage() {
                   <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
                     Amount
                   </p>
+
                   <p className="mt-1 text-sm font-bold text-[#142B4A] dark:text-white">
                     {money(payment.amount)}
                   </p>
@@ -453,6 +597,7 @@ export default function BusinessPaymentsPage() {
                   <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
                     Due date
                   </p>
+
                   <p className="mt-1 text-sm text-[#142B4A] dark:text-white">
                     {dateLabel(payment.dueDate)}
                   </p>
@@ -465,6 +610,7 @@ export default function BusinessPaymentsPage() {
                 </span>
 
                 <button
+                  type="button"
                   onClick={() => setSelectedPayment(payment)}
                   aria-label={`View ${payment.title}`}
                   className="rounded-lg p-2 text-[#142B4A] hover:bg-[#DBEAFE] dark:text-white dark:hover:bg-[#263D60]"
@@ -477,10 +623,15 @@ export default function BusinessPaymentsPage() {
 
           {filteredPayments.length === 0 && (
             <div className="px-5 py-12 text-center">
-              <Receipt size={32} className="mx-auto text-[#2563EB]" />
+              <Receipt
+                size={32}
+                className="mx-auto text-[#2563EB]"
+              />
+
               <p className="mt-3 font-semibold text-[#142B4A] dark:text-white">
                 No payments found
               </p>
+
               <p className="mt-1 text-sm text-[#58708F] dark:text-[#A9BEDA]">
                 Try changing your search or filters.
               </p>
@@ -489,47 +640,35 @@ export default function BusinessPaymentsPage() {
         </div>
       </section>
 
-      {/* Payment methods */}
+      {/* SUPPORTED PAYMENT METHODS */}
+
       <section className="rounded-2xl border border-[#D7E6F8] bg-white p-5 dark:border-[#263D60] dark:bg-[#142B4A]">
         <h2 className="font-bold text-[#142B4A] dark:text-white">
           Supported Payment Methods
         </h2>
+
         <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
-          Example methods recorded against business expenses.
+          Payment options planned for Duego navigation.
         </p>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-3">
-          {[
-            {
-              title: "UPI",
-              description: "Unified Payments Interface",
-              icon: Wallet,
-            },
-            {
-              title: "Bank Transfer",
-              description: "Direct bank payment",
-              icon: Building2,
-            },
-            {
-              title: "Other Methods",
-              description: "Additional recorded methods",
-              icon: Receipt,
-            },
-          ].map((method) => {
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {paymentMethods.map((method) => {
             const Icon = method.icon;
 
             return (
               <div
-                key={method.title}
+                key={method.name}
                 className="flex items-center gap-3 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] p-4 dark:border-[#263D60] dark:bg-[#203D65]"
               >
                 <div className="rounded-xl bg-[#DBEAFE] p-3 text-[#2563EB]">
                   <Icon size={21} />
                 </div>
+
                 <div>
                   <p className="text-sm font-semibold text-[#142B4A] dark:text-white">
-                    {method.title}
+                    {method.name}
                   </p>
+
                   <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
                     {method.description}
                   </p>
@@ -540,8 +679,9 @@ export default function BusinessPaymentsPage() {
         </div>
       </section>
 
-      {/* Transaction details modal */}
-      {selectedPayment && (
+      {/* TRANSACTION DETAILS MODAL */}
+
+      {selectedPayment && !showPaymentMethods && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[#142B4A]/70 p-4"
           onClick={() => setSelectedPayment(null)}
@@ -558,6 +698,7 @@ export default function BusinessPaymentsPage() {
                 <div className="rounded-xl bg-[#DBEAFE] p-3 text-[#2563EB]">
                   <Receipt size={22} />
                 </div>
+
                 <div>
                   <h2
                     id="payment-dialog-title"
@@ -565,13 +706,15 @@ export default function BusinessPaymentsPage() {
                   >
                     Transaction Details
                   </h2>
+
                   <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
-                    Sample business payment record
+                    Business payment record
                   </p>
                 </div>
               </div>
 
               <button
+                type="button"
                 onClick={() => setSelectedPayment(null)}
                 aria-label="Close transaction details"
                 className="rounded-lg p-2 text-[#142B4A] hover:bg-[#DBEAFE] dark:text-white dark:hover:bg-[#203D65]"
@@ -585,6 +728,7 @@ export default function BusinessPaymentsPage() {
                 <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
                   Payment description
                 </p>
+
                 <p className="mt-1 font-semibold text-[#142B4A] dark:text-white">
                   {selectedPayment.title}
                 </p>
@@ -594,6 +738,7 @@ export default function BusinessPaymentsPage() {
                 <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
                   Reference number
                 </p>
+
                 <p className="mt-1 text-sm text-[#142B4A] dark:text-white">
                   {selectedPayment.reference}
                 </p>
@@ -604,6 +749,7 @@ export default function BusinessPaymentsPage() {
                   <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
                     Amount
                   </p>
+
                   <p className="mt-1 font-bold text-[#142B4A] dark:text-white">
                     {money(selectedPayment.amount)}
                   </p>
@@ -613,6 +759,7 @@ export default function BusinessPaymentsPage() {
                   <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
                     Status
                   </p>
+
                   <span
                     className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[selectedPayment.status]}`}
                   >
@@ -624,6 +771,7 @@ export default function BusinessPaymentsPage() {
                   <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
                     Due date
                   </p>
+
                   <p className="mt-1 text-sm text-[#142B4A] dark:text-white">
                     {dateLabel(selectedPayment.dueDate)}
                   </p>
@@ -633,40 +781,293 @@ export default function BusinessPaymentsPage() {
                   <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
                     Payment method
                   </p>
+
                   <p className="mt-1 text-sm text-[#142B4A] dark:text-white">
                     {selectedPayment.method}
                   </p>
                 </div>
-              </div>
 
-              {selectedPayment.paidDate && (
-                <div>
-                  <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
-                    Paid date
-                  </p>
-                  <p className="mt-1 text-sm text-[#142B4A] dark:text-white">
-                    {dateLabel(selectedPayment.paidDate)}
-                  </p>
-                </div>
-              )}
+                {selectedPayment.paidDate && (
+                  <div>
+                    <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
+                      Paid date
+                    </p>
+
+                    <p className="mt-1 text-sm text-[#142B4A] dark:text-white">
+                      {dateLabel(selectedPayment.paidDate)}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               {selectedPayment.status !== "Paid" && (
                 <button
-                  onClick={() => markAsPaid(selectedPayment.id)}
+                  type="button"
+                  onClick={() => openPaymentMethods(selectedPayment)}
                   className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#142B4A] px-4 py-3 text-sm font-semibold !text-white hover:bg-[#2563EB]"
                 >
-                  <CheckCircle2 size={17} />
-                  Mark as Paid
+                  <Wallet size={17} />
+                  Choose Payment Method
+                  <ArrowRight size={16} />
                 </button>
               )}
 
               <button
+                type="button"
                 onClick={() => setSelectedPayment(null)}
                 className="rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] px-4 py-3 text-sm font-semibold text-[#142B4A] hover:bg-[#DBEAFE] dark:border-[#263D60] dark:bg-[#203D65] dark:text-white"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PAYMENT METHOD SELECTION MODAL */}
+
+      {showPaymentMethods && selectedPayment && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-[#142B4A]/75 p-4"
+          onClick={closePaymentMethods}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="payment-method-title"
+            className="my-auto w-full max-w-lg rounded-3xl border border-[#D7E6F8] bg-white p-5 shadow-2xl dark:border-[#263D60] dark:bg-[#142B4A] sm:p-7"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {/* MODAL HEADER */}
+
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold tracking-wider text-[#2563EB]">
+                  DUEGO PAYMENT NAVIGATION
+                </p>
+
+                <h2
+                  id="payment-method-title"
+                  className="mt-2 text-xl font-bold text-[#142B4A] dark:text-white"
+                >
+                  Choose Payment Method
+                </h2>
+
+                <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
+                  Select how you want to complete your payment.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closePaymentMethods}
+                aria-label="Close payment methods"
+                className="rounded-xl bg-[#EFF6FF] p-2 text-[#142B4A] dark:bg-[#203D65] dark:text-white"
+              >
+                <X size={19} />
+              </button>
+            </div>
+
+            {/* PAYMENT SUMMARY */}
+
+            <div className="mt-5 rounded-2xl bg-[#EFF6FF] p-4 dark:bg-[#203D65]">
+              <p className="text-xs font-semibold text-[#58708F] dark:text-[#A9BEDA]">
+                PAYMENT AMOUNT
+              </p>
+
+              <p className="mt-1 text-3xl font-bold text-[#142B4A] dark:text-white">
+                {money(selectedPayment.amount)}
+              </p>
+
+              <p className="mt-1 text-sm text-[#58708F] dark:text-[#A9BEDA]">
+                {selectedPayment.title} · {selectedPayment.reference}
+              </p>
+
+              <div className="mt-3 flex items-center gap-2 text-xs text-[#58708F] dark:text-[#A9BEDA]">
+                <ShieldCheck size={15} className="text-[#2563EB]" />
+                Payment details are shown for review.
+              </div>
+            </div>
+
+            {/* UPI METHODS */}
+
+            <div className="mt-6">
+              <h3 className="text-sm font-bold text-[#142B4A] dark:text-white">
+                UPI Applications
+              </h3>
+
+              <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
+                Choose your preferred UPI application.
+              </p>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {paymentMethods
+                  .filter((method) => method.category === "upi")
+                  .map((method) => {
+                    const Icon = method.icon;
+                    const isSelected = selectedMethod === method.name;
+
+                    return (
+                      <button
+                        key={method.name}
+                        type="button"
+                        onClick={() =>
+                          selectPaymentMethod(method.name)
+                        }
+                        aria-pressed={isSelected}
+                        className={`flex min-h-[86px] items-center gap-3 rounded-xl border p-3 text-left transition ${
+                          isSelected
+                            ? "border-[#2563EB] bg-[#DBEAFE] ring-2 ring-[#2563EB]/20 dark:bg-[#203D65]"
+                            : "border-[#D7E6F8] bg-white hover:bg-[#EFF6FF] dark:border-[#345477] dark:bg-[#142B4A] dark:hover:bg-[#203D65]"
+                        }`}
+                      >
+                        <div className="rounded-xl bg-[#DBEAFE] p-2.5 text-[#2563EB]">
+                          <Icon size={20} />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-[#142B4A] dark:text-white">
+                            {method.name}
+                          </p>
+
+                          <p className="mt-1 text-[10px] leading-4 text-[#58708F] dark:text-[#A9BEDA]">
+                            {method.description}
+                          </p>
+                        </div>
+
+                        {isSelected && (
+                          <CheckCircle2
+                            size={17}
+                            className="shrink-0 text-[#2563EB]"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* OTHER PAYMENT METHODS */}
+
+            <div className="mt-6">
+              <h3 className="text-sm font-bold text-[#142B4A] dark:text-white">
+                Other Payment Options
+              </h3>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {paymentMethods
+                  .filter((method) => method.category === "other")
+                  .map((method) => {
+                    const Icon = method.icon;
+                    const isSelected = selectedMethod === method.name;
+
+                    return (
+                      <button
+                        key={method.name}
+                        type="button"
+                        onClick={() =>
+                          selectPaymentMethod(method.name)
+                        }
+                        aria-pressed={isSelected}
+                        className={`rounded-xl border p-3 text-left transition ${
+                          isSelected
+                            ? "border-[#2563EB] bg-[#DBEAFE] ring-2 ring-[#2563EB]/20 dark:bg-[#203D65]"
+                            : "border-[#D7E6F8] bg-white hover:bg-[#EFF6FF] dark:border-[#345477] dark:bg-[#142B4A] dark:hover:bg-[#203D65]"
+                        }`}
+                      >
+                        <Icon
+                          size={22}
+                          className="mb-2 text-[#2563EB]"
+                        />
+
+                        <p className="text-sm font-bold text-[#142B4A] dark:text-white">
+                          {method.name}
+                        </p>
+
+                        <p className="mt-1 text-[10px] text-[#58708F] dark:text-[#A9BEDA]">
+                          {method.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* SELECTED METHOD INFORMATION */}
+
+            {selectedMethod && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-5 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] p-4 dark:border-[#345477] dark:bg-[#203D65]"
+              >
+                <div className="flex items-start gap-3">
+                  <Info
+                    size={19}
+                    className="mt-0.5 shrink-0 text-[#2563EB]"
+                  />
+
+                  <div>
+                    <p className="text-sm font-bold text-[#142B4A] dark:text-white">
+                      {selectedMethod} selected
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[#58708F] dark:text-[#A9BEDA]">
+                      Your payment method has been selected.
+                      Actual payment initiation will be enabled
+                      after connecting the backend payment API.
+                      No payment has been initiated yet.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* SECURITY NOTICE */}
+
+            <div className="mt-5 flex items-start gap-2">
+              <ShieldCheck
+                size={17}
+                className="mt-0.5 shrink-0 text-[#2563EB]"
+              />
+
+              <p className="text-[11px] leading-5 text-[#58708F] dark:text-[#A9BEDA]">
+                Duego will verify payment status through the
+                authorized payment provider or backend. Returning
+                from a payment app alone does not confirm success.
+              </p>
+            </div>
+
+            {/* ACTION BUTTONS */}
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                disabled={!selectedMethod}
+                onClick={() => {
+                  if (!selectedMethod) return;
+
+                  setNotice(
+                    `${selectedMethod} selected for ${selectedPayment.reference}. Backend integration is pending; no payment was initiated.`
+                  );
+
+                  closePaymentMethods();
+                  setSelectedPayment(null);
+                }}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#142B4A] px-4 py-3 text-sm font-bold !text-white hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Continue
+                <ChevronRight size={17} />
+              </button>
+
+              <button
+                type="button"
+                onClick={closePaymentMethods}
+                className="rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] px-4 py-3 text-sm font-semibold text-[#142B4A] hover:bg-[#DBEAFE] dark:border-[#263D60] dark:bg-[#203D65] dark:text-white"
+              >
+                Cancel
               </button>
             </div>
           </div>
