@@ -73,3 +73,36 @@ class DocumentAnalysisResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+class PaymentRecipientCreate(BaseModel):
+    recipient_type: str
+    name: str
+    upi_id: str | None = None
+
+
+class PaymentRecipientResponse(BaseModel):
+    id: int
+    recipient_type: str
+    name: str
+    upi_id: str | None = None
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaymentOrderCreate(BaseModel):
+    payment_id: int
+
+
+class PaymentTransactionResponse(BaseModel):
+    id: int
+    payment_id: int
+    transaction_reference: str
+    gateway_order_id: str | None = None
+    amount: int
+    currency: str
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
