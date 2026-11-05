@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
+from razorpay_client import razorpay_client
 from schemas import (
     UserCreate,
     UserResponse,
@@ -37,6 +38,10 @@ from schemas import (
     ReminderCreate,
     ReminderUpdate,
     DocumentAnalysisResponse,
+    PaymentRecipientCreate,
+    PaymentRecipientResponse,
+    PaymentOrderCreate,
+    PaymentTransactionResponse,
 )
 
 # =========================================================
@@ -2039,3 +2044,38 @@ def delete_reminder(
     return {
         "message": "Reminder deleted successfully"
     }
+
+# =========================================================
+# CREATE PAYMENT RECIPIENT
+# =========================================================
+
+@app.post(
+    "/payment-recipients",
+    response_model=PaymentRecipientResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_payment_recipient(
+    recipient: PaymentRecipientCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    recipient_type = recipient.recipient_type.upper()
+
+    if recipient_type not in ["FREELANCER", "VENDOR", "BUSINESS"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid recipient type",
+        )
+
+    new_recipient = models.PaymentRecipient(
+        user_id=current_user.id,
+        recipient_type=recipient_type,
+        name=recipient.name,
+        upi_id=recipient.upi_id,
+    )
+
+    db.add(new_recipient)
+    db.commit()
+    db.refresh(new_recipient)
+
+    return new_recipient
