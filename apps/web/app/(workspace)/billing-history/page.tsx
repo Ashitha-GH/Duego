@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowRight,
   Receipt,
   Search,
   Filter,
@@ -18,10 +19,18 @@ import {
   AlertCircle,
   ShieldCheck,
   RotateCcw,
-  Download,
   CreditCard,
+  Crown,
+  Sparkles,
   FileText,
+  Info,
+  Download,
 } from "lucide-react";
+
+import {
+  PLAN_DETAILS,
+  type PlanType,
+} from "@/lib/subscription/feature-config";
 
 type BillingStatus = "Paid" | "Pending" | "Failed";
 type PlanName = "Free" | "Pro" | "Business";
@@ -127,8 +136,18 @@ const planStyles: Record<PlanName, string> = {
   Business: "bg-[#FEF3C7] text-[#92400E]",
 };
 
+const planKey: Record<PlanName, PlanType> = {
+  Free: "free",
+  Pro: "pro",
+  Business: "business",
+};
+
 export default function BillingHistoryPage() {
   const [records] = useState<BillingRecord[]>(initialRecords);
+
+  // Demo membership. Replace with the actual backend subscription later.
+  const currentPlan: PlanType = "free";
+  const currentPlanDetails = PLAN_DETAILS[currentPlan];
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -157,42 +176,37 @@ export default function BillingHistoryPage() {
   );
 
   const filteredRecords = records.filter((record) => {
-      const searchText = [
-        record.invoice,
-        record.transactionId,
-        record.providerReference ?? "",
-        record.plan,
-        record.period,
-        record.method,
-      ]
-        .join(" ")
-        .toLowerCase();
+    const searchText = [
+      record.invoice,
+      record.transactionId,
+      record.providerReference ?? "",
+      record.plan,
+      record.period,
+      record.method,
+    ]
+      .join(" ")
+      .toLowerCase();
 
-      const matchesSearch = searchText.includes(
-        search.toLowerCase().trim()
-      );
+    const matchesSearch = searchText.includes(
+      search.toLowerCase().trim()
+    );
 
-      const matchesStatus =
-        statusFilter === "All" ||
-        record.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "All" || record.status === statusFilter;
 
-      const matchesPlan =
-        planFilter === "All" ||
-        record.plan === planFilter;
+    const matchesPlan =
+      planFilter === "All" || record.plan === planFilter;
 
-      const matchesFrom =
-        !dateFrom || record.billingDate >= dateFrom;
+    const matchesFrom = !dateFrom || record.billingDate >= dateFrom;
+    const matchesTo = !dateTo || record.billingDate <= dateTo;
 
-      const matchesTo =
-        !dateTo || record.billingDate <= dateTo;
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesPlan &&
-        matchesFrom &&
-        matchesTo
-      );
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesPlan &&
+      matchesFrom &&
+      matchesTo
+    );
   });
 
   function resetFilters() {
@@ -206,7 +220,6 @@ export default function BillingHistoryPage() {
   function printInvoice(record: BillingRecord) {
     setSelectedRecord(record);
 
-    // Open the browser print dialog for the dedicated invoice.
     window.setTimeout(() => {
       window.print();
     }, 300);
@@ -215,38 +228,37 @@ export default function BillingHistoryPage() {
   return (
     <>
       <div className="space-y-7 pb-10 print:hidden">
-        {/* PAGE HEADER */}
 
-        <section className="overflow-hidden rounded-3xl bg-[#142B4A] p-7 text-white md:p-9">
-          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+        {/* HEADER */}
+        <section className="relative overflow-hidden rounded-3xl bg-[#142B4A] p-7 text-white md:p-9">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-64 w-64 rounded-full bg-[#2563EB]/25 blur-3xl" />
+
+          <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
             <div>
-              <p className="text-sm font-semibold text-[#93C5FD]">
+              <p className="flex items-center gap-2 text-sm font-bold tracking-wider text-[#93C5FD]">
+                <Receipt size={17} />
                 SUBSCRIPTION MANAGEMENT
               </p>
 
-              <h1 className="mt-3 text-3xl font-bold tracking-tight">
+              <h1 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
                 Billing History
               </h1>
 
-              <p className="mt-2 max-w-xl text-sm leading-6 text-[#DBEAFE]">
+              <p className="mt-3 max-w-xl text-sm leading-6 text-[#DBEAFE]">
                 Review subscription transactions, payment dates,
                 transaction references and invoice records.
               </p>
             </div>
 
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#2563EB]">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#2563EB]">
               <Receipt size={32} className="text-white" />
             </div>
           </div>
         </section>
 
         {/* PREVIEW NOTICE */}
-
         <div className="flex items-start gap-3 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] p-4 dark:border-[#263D60] dark:bg-[#142B4A]">
-          <ShieldCheck
-            size={20}
-            className="mt-0.5 shrink-0 text-[#2563EB]"
-          />
+          <ShieldCheck size={20} className="mt-0.5 shrink-0 text-[#2563EB]" />
 
           <p className="text-sm leading-6 text-[#142B4A] dark:text-[#DBEAFE]">
             <strong>Demo mode:</strong> These illustrative records
@@ -256,8 +268,117 @@ export default function BillingHistoryPage() {
           </p>
         </div>
 
-        {/* SUMMARY CARDS */}
+        {/* CURRENT SUBSCRIPTION */}
+        <section className="overflow-hidden rounded-2xl border border-[#D7E6F8] bg-white dark:border-[#263D60] dark:bg-[#142B4A]">
+          <div className="flex flex-col justify-between gap-4 bg-[#142B4A] p-6 text-white sm:flex-row sm:items-center">
+            <div>
+              <p className="flex items-center gap-2 text-xs font-bold tracking-wider text-[#93C5FD]">
+                <Crown size={16} />
+                YOUR DUEGO MEMBERSHIP
+              </p>
 
+              <h2 className="mt-3 text-2xl font-bold">
+                {currentPlanDetails.name} Plan
+              </h2>
+
+              <p className="mt-1 text-sm text-[#DBEAFE]">
+                {money(currentPlanDetails.price)} / month
+              </p>
+            </div>
+
+            <span
+              className="w-fit rounded-full px-4 py-2 text-xs font-bold"
+              style={{
+                backgroundColor: `${currentPlanDetails.color}30`,
+                color: "#FFFFFF",
+              }}
+            >
+              Demo Account
+            </span>
+          </div>
+
+          <div className="grid gap-4 p-5 md:grid-cols-3">
+            {(["free", "pro", "business"] as PlanType[]).map((plan) => {
+              const details = PLAN_DETAILS[plan];
+              const active = currentPlan === plan;
+
+              const Icon =
+                plan === "business"
+                  ? Crown
+                  : plan === "pro"
+                    ? Sparkles
+                    : FileText;
+
+              return (
+                <div
+                  key={plan}
+                  className={`rounded-xl border p-4 ${
+                    active
+                      ? "border-[#2563EB] bg-[#EFF6FF] dark:bg-[#203D65]"
+                      : "border-[#D7E6F8] bg-white dark:border-[#263D60] dark:bg-[#142B4A]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="rounded-xl p-2.5"
+                      style={{
+                        backgroundColor: `${details.color}20`,
+                        color: details.color,
+                      }}
+                    >
+                      <Icon size={20} />
+                    </span>
+
+                    {active && (
+                      <CheckCircle2 size={20} className="text-[#15803D]" />
+                    )}
+                  </div>
+
+                  <h3 className="mt-3 font-bold text-[#142B4A] dark:text-white">
+                    {details.name}
+                  </h3>
+
+                  <p className="mt-1 text-lg font-bold text-[#142B4A] dark:text-white">
+                    {money(details.price)}
+                    <span className="text-xs font-medium text-[#58708F] dark:text-[#A9BEDA]">
+                      {" "}/ month
+                    </span>
+                  </p>
+
+                  {active ? (
+                    <p className="mt-3 text-xs font-bold text-[#15803D]">
+                      Current Plan
+                    </p>
+                  ) : (
+                    <Link
+                      href="/subscription"
+                      className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#2563EB]"
+                    >
+                      View plan <ArrowRight size={14} />
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="border-t border-[#D7E6F8] bg-[#EFF6FF] p-4 dark:border-[#263D60] dark:bg-[#203D65]">
+            <p className="text-xs leading-5 text-[#58708F] dark:text-[#DBEAFE]">
+              Your actual membership and payment information will
+              be loaded from the backend after integration.
+            </p>
+
+            <Link
+              href="/subscription"
+              className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-[#2563EB]"
+            >
+              Manage Subscription
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </section>
+
+        {/* BILLING OVERVIEW */}
         <section>
           <div className="mb-4">
             <h2 className="text-lg font-bold text-[#142B4A] dark:text-white">
@@ -334,7 +455,6 @@ export default function BillingHistoryPage() {
         </section>
 
         {/* TRANSACTION RECORDS */}
-
         <section className="overflow-hidden rounded-2xl border border-[#D7E6F8] bg-white dark:border-[#263D60] dark:bg-[#142B4A]">
           <div className="border-b border-[#D7E6F8] p-5 dark:border-[#263D60]">
             <h2 className="font-bold text-[#142B4A] dark:text-white">
@@ -346,10 +466,9 @@ export default function BillingHistoryPage() {
             </p>
           </div>
 
-          {/* SEARCH */}
-
           <div className="space-y-4 p-5">
-            <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] px-3 dark:border-[#263D60]">
+            {/* SEARCH */}
+            <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] px-3 dark:border-[#263D60] dark:bg-[#203D65]">
               <Search size={18} className="text-[#2563EB]" />
 
               <input
@@ -362,9 +481,8 @@ export default function BillingHistoryPage() {
             </div>
 
             {/* FILTERS */}
-
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] px-3 dark:border-[#263D60]">
+              <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] px-3 dark:border-[#263D60] dark:bg-[#203D65]">
                 <Filter size={16} className="text-[#2563EB]" />
 
                 <select
@@ -386,7 +504,7 @@ export default function BillingHistoryPage() {
                 value={planFilter}
                 onChange={(event) => setPlanFilter(event.target.value)}
                 aria-label="Filter by subscription plan"
-                className="h-11 rounded-xl border border-[#D7E6F8] bg-white px-3 text-sm text-[#142B4A] outline-none dark:border-[#263D60] dark:bg-[#142B4A] dark:text-white"
+                className="h-11 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] px-3 text-sm text-[#142B4A] outline-none dark:border-[#263D60] dark:bg-[#203D65] dark:text-white"
               >
                 <option value="All">All plans</option>
                 <option value="Free">Free</option>
@@ -394,11 +512,8 @@ export default function BillingHistoryPage() {
                 <option value="Business">Business</option>
               </select>
 
-              <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] px-3 dark:border-[#263D60]">
-                <CalendarDays
-                  size={16}
-                  className="shrink-0 text-[#2563EB]"
-                />
+              <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] px-3 dark:border-[#263D60] dark:bg-[#203D65]">
+                <CalendarDays size={16} className="shrink-0 text-[#2563EB]" />
 
                 <input
                   type="date"
@@ -409,11 +524,8 @@ export default function BillingHistoryPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] px-3 dark:border-[#263D60]">
-                <CalendarDays
-                  size={16}
-                  className="shrink-0 text-[#2563EB]"
-                />
+              <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] px-3 dark:border-[#263D60] dark:bg-[#203D65]">
+                <CalendarDays size={16} className="shrink-0 text-[#2563EB]" />
 
                 <input
                   type="date"
@@ -437,7 +549,6 @@ export default function BillingHistoryPage() {
           </div>
 
           {/* RECORD LIST */}
-
           <div className="divide-y divide-[#D7E6F8] dark:divide-[#263D60]">
             {filteredRecords.map((record, index) => (
               <motion.div
@@ -508,10 +619,7 @@ export default function BillingHistoryPage() {
 
             {filteredRecords.length === 0 && (
               <div className="px-5 py-12 text-center">
-                <Receipt
-                  size={34}
-                  className="mx-auto text-[#2563EB]"
-                />
+                <Receipt size={34} className="mx-auto text-[#2563EB]" />
 
                 <p className="mt-3 font-semibold text-[#142B4A] dark:text-white">
                   No billing records found
@@ -534,7 +642,6 @@ export default function BillingHistoryPage() {
         </section>
 
         {/* BACK TO SUBSCRIPTION */}
-
         <Link
           href="/subscription"
           className="inline-flex items-center gap-2 rounded-xl border border-[#D7E6F8] bg-white px-4 py-3 text-sm font-semibold text-[#142B4A] hover:bg-[#EFF6FF] dark:border-[#263D60] dark:bg-[#142B4A] dark:text-white"
@@ -545,7 +652,6 @@ export default function BillingHistoryPage() {
       </div>
 
       {/* INVOICE DETAILS MODAL */}
-
       {selectedRecord && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#142B4A]/75 p-4 print:hidden"
@@ -589,7 +695,6 @@ export default function BillingHistoryPage() {
             </div>
 
             {/* AMOUNT SUMMARY */}
-
             <div className="mt-6 rounded-xl bg-[#EFF6FF] p-5 dark:bg-[#203D65]">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#58708F] dark:text-[#A9BEDA]">
                 Duego Subscription
@@ -615,7 +720,6 @@ export default function BillingHistoryPage() {
             </div>
 
             {/* DETAILS */}
-
             <div className="mt-5 space-y-4">
               {[
                 ["Invoice Number", selectedRecord.invoice],
@@ -646,7 +750,6 @@ export default function BillingHistoryPage() {
             </div>
 
             {/* ACTIONS */}
-
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
@@ -674,7 +777,6 @@ export default function BillingHistoryPage() {
       )}
 
       {/* PRINT-ONLY INVOICE */}
-
       {selectedRecord && (
         <section
           id="invoice-print-area"
@@ -696,6 +798,7 @@ export default function BillingHistoryPage() {
               <p className="font-bold text-[#92400E]">
                 DEMO INVOICE PREVIEW
               </p>
+
               <p className="mt-1 text-xs text-[#92400E]">
                 Not a tax invoice or proof of payment.
               </p>
@@ -724,7 +827,10 @@ export default function BillingHistoryPage() {
                 ["Subscription Plan", selectedRecord.plan],
                 ["Billing Period", selectedRecord.period],
                 ["Payment Method", selectedRecord.method],
-                ["Provider Reference", selectedRecord.providerReference || "Not available"],
+                [
+                  "Provider Reference",
+                  selectedRecord.providerReference || "Not available",
+                ],
                 ["Payment Status", selectedRecord.status],
               ].map(([label, value]) => (
                 <tr key={label} className="border-b border-[#D7E6F8]">
