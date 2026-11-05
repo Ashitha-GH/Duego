@@ -25,7 +25,6 @@ import {
   Pencil,
   Trash2,
   Building2,
-  CalendarDays,
   IndianRupee,
 } from "lucide-react";
 

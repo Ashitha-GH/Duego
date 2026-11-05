@@ -16,10 +16,7 @@ import {
   IndianRupee,
   FileText,
   Sparkles,
-  CalendarDays,
   Landmark,
-  CircleDollarSign,
-  Info,
 } from "lucide-react";
 
 import {
