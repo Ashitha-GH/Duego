@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -24,7 +23,22 @@ import {
   CircleAlert,
   Layers3,
   RefreshCw,
+  LockKeyhole,
+  Crown,
+  BarChart3,
+  Zap,
+  Gem,
 } from "lucide-react";
+
+import {
+  hasFeatureAccess,
+  PLAN_DETAILS,
+  type PlanType,
+} from "@/lib/subscription/feature-config";
+
+// DEMONSTRATION PLAN
+// Later, replace this with the logged-in user's plan from your backend.
+const currentPlan: PlanType = "free";
 
 const documents = [
   "Service Agreement.pdf",
@@ -39,7 +53,6 @@ const findings = [
       "The agreement has a defined service period with renewal conditions.",
     type: "Contract",
     icon: FileText,
-    color: "blue",
   },
   {
     title: "Payment obligation",
@@ -47,7 +60,6 @@ const findings = [
       "A sample payment obligation of ₹25,000 is identified for review.",
     type: "Payment",
     icon: Wallet,
-    color: "indigo",
   },
   {
     title: "Renewal condition",
@@ -55,7 +67,6 @@ const findings = [
       "The agreement contains a renewal clause that should be reviewed before expiry.",
     type: "Important",
     icon: CalendarDays,
-    color: "gold",
   },
 ];
 
@@ -105,8 +116,7 @@ const deadlines = [
   {
     title: "Agreement renewal review",
     date: "12 November 2026",
-    description:
-      "Review the renewal conditions before the agreement period ends.",
+    description: "Review the renewal conditions before the agreement period ends.",
   },
   {
     title: "Payment follow-up",
@@ -131,11 +141,97 @@ const secondary = "text-[#58708F] dark:text-[#A9BEDA]";
 const primaryButton =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-[#142B4A] px-5 py-3 text-sm font-semibold !text-white transition hover:bg-[#2563EB] dark:bg-[#2563EB] dark:hover:bg-[#3B82F6]";
 
-const blueButton =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-5 py-3 text-sm font-semibold !text-white transition hover:bg-[#1D4ED8] dark:hover:bg-[#3B82F6]";
-
 const secondaryButton =
   "inline-flex items-center justify-center gap-2 rounded-xl border border-[#C7DDF5] bg-white px-5 py-3 text-sm font-semibold !text-[#142B4A] transition hover:border-blue-400 hover:bg-[#DBEAFE] dark:border-[#345477] dark:bg-[#17365E] dark:!text-white dark:hover:bg-[#244D7D]";
+
+const planIcons: Record<PlanType, typeof Zap> = {
+  free: Zap,
+  pro: Crown,
+  business: Gem,
+};
+
+function PlanBadge({ plan }: { plan: PlanType }) {
+  const Icon = planIcons[plan];
+  const details = PLAN_DETAILS[plan];
+
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold"
+      style={{
+        color: details.color,
+        borderColor: `${details.color}55`,
+        backgroundColor: `${details.color}12`,
+      }}
+    >
+      <Icon size={13} />
+      {details.name}
+    </span>
+  );
+}
+
+function FeatureLock({
+  featureId,
+  currentPlan,
+}: {
+  featureId: string;
+  currentPlan: PlanType;
+}) {
+  const featurePlans: Record<string, PlanType> = {
+    "advanced-ai-analysis": "pro",
+    "risk-detection": "pro",
+    "detailed-reports": "pro",
+    "business-reports": "business",
+  };
+
+  const requiredPlan = featurePlans[featureId] ?? "pro";
+  const details = PLAN_DETAILS[requiredPlan];
+
+  if (hasFeatureAccess(currentPlan, featureId)) return null;
+
+  return (
+    <div className="rounded-2xl border border-[#C7DDF5] bg-[#EFF6FF] p-5 dark:border-[#345477] dark:bg-[#102749]">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-white p-3 text-blue-700 dark:bg-[#17365E] dark:text-blue-200">
+            <LockKeyhole size={21} />
+          </div>
+
+          <div>
+            <h4 className={`text-sm font-bold ${heading}`}>
+              {featureId === "advanced-ai-analysis"
+                ? "Advanced AI Analysis"
+                : featureId === "risk-detection"
+                  ? "Advanced Risk Detection"
+                  : featureId === "detailed-reports"
+                    ? "Detailed AI Reports"
+                    : "Business Reports"}
+            </h4>
+
+            <p className={`mt-1 text-xs leading-5 ${secondary}`}>
+              Upgrade your plan to unlock this feature.
+            </p>
+
+            <div className="mt-3">
+              <PlanBadge plan={requiredPlan} />
+            </div>
+          </div>
+        </div>
+
+        <Link
+          href="/subscription"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition hover:opacity-90"
+          style={{
+            backgroundColor: details.color,
+            color: requiredPlan === "business" ? "#142B4A" : "#FFFFFF",
+          }}
+        >
+          Upgrade Plan
+          <ArrowUpRight size={16} />
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 export default function AnalysisPage() {
   const [selectedDocument, setSelectedDocument] = useState(documents[0]);
@@ -153,6 +249,10 @@ export default function AnalysisPage() {
   );
 
   const activeDocumentIndex = documents.indexOf(selectedDocument) + 1;
+
+  const isPro = hasFeatureAccess(currentPlan, "advanced-ai-analysis");
+  const isBusiness = hasFeatureAccess(currentPlan, "business-reports");
+  const isRiskEnabled = hasFeatureAccess(currentPlan, "risk-detection");
 
   return (
     <div className="space-y-7 pb-12">
@@ -174,11 +274,15 @@ export default function AnalysisPage() {
           </p>
         </div>
 
-        <Link href="/documents" className={primaryButton}>
-          <FileText size={17} className="text-white" />
-          <span className="text-white">Manage Documents</span>
-          <ArrowUpRight size={16} className="text-white" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <PlanBadge plan={currentPlan} />
+
+          <Link href="/documents" className={primaryButton}>
+            <FileText size={17} className="text-white" />
+            <span>Manage Documents</span>
+            <ArrowUpRight size={16} className="text-white" />
+          </Link>
+        </div>
       </section>
 
       {/* SAMPLE DATA NOTICE */}
@@ -192,12 +296,83 @@ export default function AnalysisPage() {
             Demonstration Analysis
           </p>
           <p className={`mt-1 text-xs leading-6 ${secondary}`}>
-            The information on this page is illustrative sample content.
-            Actual document extraction, Gemini AI analysis, and risk detection
-            will be connected through the backend later.
+            The report currently displays illustrative sample content.
+            Actual document extraction, AI analysis and risk detection
+            will be connected through the backend.
           </p>
         </div>
       </div>
+
+      {/* PLAN OVERVIEW */}
+      <section className={`${panel} p-5 shadow-sm`}>
+        <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <h2 className={`font-bold ${heading}`}>Your Analysis Access</h2>
+            <p className={`mt-1 text-xs ${secondary}`}>
+              Features available with your current subscription.
+            </p>
+          </div>
+
+          <Link
+            href="/subscription"
+            className="inline-flex items-center gap-2 text-sm font-bold text-blue-700 hover:underline dark:text-blue-300"
+          >
+            View Plans
+            <ArrowUpRight size={15} />
+          </Link>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              id: "basic-documents",
+              label: "Basic Document Management",
+              plan: "free" as PlanType,
+            },
+            {
+              id: "advanced-ai-analysis",
+              label: "Advanced AI Analysis",
+              plan: "pro" as PlanType,
+            },
+            {
+              id: "risk-detection",
+              label: "Advanced Risk Detection",
+              plan: "pro" as PlanType,
+            },
+            {
+              id: "business-reports",
+              label: "Business Reports",
+              plan: "business" as PlanType,
+            },
+          ].map((feature) => {
+            const available = hasFeatureAccess(currentPlan, feature.id);
+
+            return (
+              <div
+                key={feature.id}
+                className="rounded-xl border border-[#D7E6F8] bg-[#F5F9FF] p-4 dark:border-[#263D60] dark:bg-[#102749]"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  {available ? (
+                    <CheckCircle2 size={18} className="text-blue-600" />
+                  ) : (
+                    <LockKeyhole size={18} className="text-amber-600" />
+                  )}
+                  <PlanBadge plan={feature.plan} />
+                </div>
+
+                <p className={`mt-3 text-sm font-bold ${heading}`}>
+                  {feature.label}
+                </p>
+
+                <p className={`mt-1 text-xs ${secondary}`}>
+                  {available ? "Included in your plan" : "Upgrade to unlock"}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* TOP METRICS */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -207,40 +382,27 @@ export default function AnalysisPage() {
             value: "03",
             note: "Sample documents",
             icon: FileText,
-            color: "blue",
           },
           {
             label: "Extracted details",
             value: "06",
             note: "Illustrative information",
             icon: ClipboardList,
-            color: "indigo",
           },
           {
             label: "Identified obligations",
             value: "02",
             note: "Sample obligations",
             icon: Target,
-            color: "violet",
           },
           {
             label: "Action dates",
             value: "02",
             note: "Demonstration dates",
             icon: CalendarDays,
-            color: "gold",
           },
         ].map((item, index) => {
           const Icon = item.icon;
-
-          const colors: Record<string, string> = {
-            blue: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200",
-            indigo:
-              "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-200",
-            violet:
-              "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-200",
-            gold: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200",
-          };
 
           return (
             <motion.div
@@ -254,7 +416,7 @@ export default function AnalysisPage() {
                 <p className={`text-xs font-medium ${secondary}`}>
                   {item.label}
                 </p>
-                <div className={`rounded-xl p-2.5 ${colors[item.color]}`}>
+                <div className="rounded-xl bg-blue-100 p-2.5 text-blue-700 dark:bg-blue-950 dark:text-blue-200">
                   <Icon size={19} />
                 </div>
               </div>
@@ -370,7 +532,7 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* ANALYSIS TABS */}
+        {/* TABS */}
         <div className="border-b border-[#D7E6F8] bg-[#EFF6FF] px-3 dark:border-[#263D60] dark:bg-[#102749]">
           <div className="flex gap-2 overflow-x-auto py-2">
             {tabs.map((tab) => {
@@ -397,10 +559,10 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* TAB CONTENT */}
-        <div className="p-5 sm:p-7">
+        <div className="space-y-7 p-5 sm:p-7">
+          {/* OVERVIEW */}
           {activeTab === "Overview" && (
-            <div className="space-y-7">
+            <>
               <section>
                 <div className="mb-4 flex items-center gap-2">
                   <div className="rounded-lg bg-blue-100 p-2 text-blue-700 dark:bg-blue-950 dark:text-blue-200">
@@ -410,7 +572,7 @@ export default function AnalysisPage() {
                   <div>
                     <h3 className={`font-bold ${heading}`}>AI Summary</h3>
                     <p className={`text-xs ${secondary}`}>
-                      High-level document understanding
+                      Basic document understanding
                     </p>
                   </div>
                 </div>
@@ -435,7 +597,7 @@ export default function AnalysisPage() {
                 <div className="mb-4">
                   <h3 className={`font-bold ${heading}`}>Key Findings</h3>
                   <p className={`mt-1 text-xs ${secondary}`}>
-                    Important information represented in the sample report.
+                    Illustrative information from the sample report.
                   </p>
                 </div>
 
@@ -443,20 +605,13 @@ export default function AnalysisPage() {
                   {findings.map((finding) => {
                     const Icon = finding.icon;
 
-                    const colorClasses: Record<string, string> = {
-                      blue: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-900",
-                      indigo:
-                        "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-200 dark:border-indigo-900",
-                      gold: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-900",
-                    };
-
                     return (
                       <div
                         key={finding.title}
-                        className="rounded-2xl border border-[#D7E6F8] bg-white p-5 transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-[#263D60] dark:bg-[#102749] dark:hover:border-blue-700"
+                        className="rounded-2xl border border-[#D7E6F8] bg-white p-5 transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-[#263D60] dark:bg-[#102749]"
                       >
                         <div className="mb-4 flex items-center justify-between">
-                          <div className={`rounded-xl border p-3 ${colorClasses[finding.color]}`}>
+                          <div className="rounded-xl border border-blue-200 bg-blue-100 p-3 text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200">
                             <Icon size={21} />
                           </div>
 
@@ -515,14 +670,28 @@ export default function AnalysisPage() {
                         Risk Review
                       </p>
                       <p className={`mt-1 text-xs ${secondary}`}>
-                        3 example review points
+                        Review document risks
                       </p>
                     </div>
                   </div>
                   <ArrowUpRight size={18} className="text-amber-600" />
                 </button>
               </section>
-            </div>
+
+              {!isPro && (
+                <FeatureLock
+                  featureId="advanced-ai-analysis"
+                  currentPlan={currentPlan}
+                />
+              )}
+
+              {!isBusiness && (
+                <FeatureLock
+                  featureId="business-reports"
+                  currentPlan={currentPlan}
+                />
+              )}
+            </>
           )}
 
           {/* EXTRACTED DETAILS */}
@@ -568,6 +737,13 @@ export default function AnalysisPage() {
                   These are demonstration values, not information extracted
                   from the selected file.
                 </p>
+              </div>
+
+              <div className="mt-5">
+                <FeatureLock
+                  featureId="detailed-reports"
+                  currentPlan={currentPlan}
+                />
               </div>
             </section>
           )}
@@ -620,8 +796,8 @@ export default function AnalysisPage() {
               </div>
 
               <Link href="/obligations" className={`${primaryButton} mt-5`}>
-                <span className="text-white">View All Obligations</span>
-                <ArrowUpRight size={16} className="text-white" />
+                <span>View All Obligations</span>
+                <ArrowUpRight size={16} />
               </Link>
             </section>
           )}
@@ -629,56 +805,65 @@ export default function AnalysisPage() {
           {/* RISKS */}
           {activeTab === "Risks" && (
             <section>
-              <div className="mb-5">
-                <h3 className={`text-lg font-bold ${heading}`}>
-                  Risk & Review Indicators
-                </h3>
-                <p className={`mt-1 text-xs ${secondary}`}>
-                  Example points that a business user may want to review.
-                </p>
-              </div>
-
-              <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-[#302817]">
-                <div className="rounded-xl bg-amber-100 p-3 text-amber-700 dark:bg-amber-950 dark:text-amber-200">
-                  <ShieldAlert size={23} />
-                </div>
-
-                <div>
-                  <h4 className={`font-bold ${heading}`}>
-                    Review recommended
-                  </h4>
-                  <p className={`mt-1 text-xs leading-6 ${secondary}`}>
-                    These are example review points, not actual risks detected
-                    in your document.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {risks.map((risk) => (
-                  <div
-                    key={risk.title}
-                    className="flex items-start gap-3 rounded-xl border border-[#D7E6F8] bg-white p-4 dark:border-[#263D60] dark:bg-[#102749]"
-                  >
-                    <div className="rounded-lg bg-amber-100 p-2 text-amber-700 dark:bg-amber-950 dark:text-amber-200">
-                      <AlertTriangle size={18} />
-                    </div>
-
-                    <div className="flex-1">
-                      <p className={`text-sm font-bold ${heading}`}>
-                        {risk.title}
-                      </p>
-                      <p className={`mt-1 text-xs leading-6 ${secondary}`}>
-                        {risk.description}
-                      </p>
-                    </div>
-
-                    <span className="rounded-full bg-amber-100 px-3 py-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-200">
-                      {risk.level}
-                    </span>
+              {!isRiskEnabled ? (
+                <FeatureLock
+                  featureId="risk-detection"
+                  currentPlan={currentPlan}
+                />
+              ) : (
+                <>
+                  <div className="mb-5">
+                    <h3 className={`text-lg font-bold ${heading}`}>
+                      Risk & Review Indicators
+                    </h3>
+                    <p className={`mt-1 text-xs ${secondary}`}>
+                      Example points that a business user may want to review.
+                    </p>
                   </div>
-                ))}
-              </div>
+
+                  <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-[#302817]">
+                    <div className="rounded-xl bg-amber-100 p-3 text-amber-700 dark:bg-amber-950 dark:text-amber-200">
+                      <ShieldAlert size={23} />
+                    </div>
+
+                    <div>
+                      <h4 className={`font-bold ${heading}`}>
+                        Review recommended
+                      </h4>
+                      <p className={`mt-1 text-xs leading-6 ${secondary}`}>
+                        These are example review points, not actual risks
+                        detected in your document.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {risks.map((risk) => (
+                      <div
+                        key={risk.title}
+                        className="flex items-start gap-3 rounded-xl border border-[#D7E6F8] bg-white p-4 dark:border-[#263D60] dark:bg-[#102749]"
+                      >
+                        <div className="rounded-lg bg-amber-100 p-2 text-amber-700 dark:bg-amber-950 dark:text-amber-200">
+                          <AlertTriangle size={18} />
+                        </div>
+
+                        <div className="flex-1">
+                          <p className={`text-sm font-bold ${heading}`}>
+                            {risk.title}
+                          </p>
+                          <p className={`mt-1 text-xs leading-6 ${secondary}`}>
+                            {risk.description}
+                          </p>
+                        </div>
+
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-200">
+                          {risk.level}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </section>
           )}
         </div>
@@ -795,6 +980,40 @@ export default function AnalysisPage() {
           )}
         </div>
       </section>
+
+      {/* BUSINESS REPORT FEATURE */}
+      {!isBusiness && (
+        <section className="rounded-2xl border border-[#D6A84B]/40 bg-[#FFFBF0] p-5 dark:border-[#69532D] dark:bg-[#302817]">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-[#F9E8B7] p-3 text-[#142B4A]">
+                <BarChart3 size={23} />
+              </div>
+
+              <div>
+                <h3 className="font-bold text-[#142B4A] dark:text-[#FFF2CE]">
+                  Unlock Business Intelligence Reports
+                </h3>
+                <p className="mt-1 text-xs leading-6 text-[#58708F] dark:text-[#E5D3A9]">
+                  Get enhanced business reporting and deeper insights with
+                  the Business plan.
+                </p>
+                <div className="mt-3">
+                  <PlanBadge plan="business" />
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href="/subscription"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#D6A84B] px-5 py-3 text-sm font-bold text-[#142B4A] transition hover:bg-[#E5BC69]"
+            >
+              Explore Business Plan
+              <ArrowUpRight size={16} />
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* BOTTOM AI PANEL */}
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#142B4A] to-[#244D7D] p-6 text-white sm:p-7">

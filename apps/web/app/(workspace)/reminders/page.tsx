@@ -22,7 +22,16 @@ import {
   Flag,
   Info,
   ArrowRight,
+  Lock,
+  Crown,
+  Sparkles,
 } from "lucide-react";
+
+import {
+  hasFeatureAccess,
+  PLAN_DETAILS,
+  type PlanType,
+} from "@/lib/subscription/feature-config";
 
 type ReminderStatus = "Pending" | "Completed" | "Overdue";
 type ReminderPriority = "High" | "Medium" | "Low";
@@ -132,9 +141,123 @@ const formatDate = (date: string) =>
     year: "numeric",
   });
 
+function PlanBadge({ plan }: { plan: PlanType }) {
+  const details = PLAN_DETAILS[plan];
+
+  return (
+    <span
+      className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold"
+      style={{
+        backgroundColor: `${details.color}20`,
+        color: details.color,
+      }}
+    >
+      {plan === "business" ? (
+        <Crown size={15} />
+      ) : plan === "pro" ? (
+        <Sparkles size={15} />
+      ) : (
+        <CheckCircle2 size={15} />
+      )}
+      {details.name} Plan
+    </span>
+  );
+}
+
+function PremiumFeatureCard({
+  title,
+  description,
+  plan,
+  featureId,
+  currentPlan,
+}: {
+  title: string;
+  description: string;
+  plan: "pro" | "business";
+  featureId: string;
+  currentPlan: PlanType;
+}) {
+  const hasAccess = hasFeatureAccess(currentPlan, featureId);
+  const details = PLAN_DETAILS[plan];
+  const isBusiness = plan === "business";
+
+  return (
+    <div
+      className={`rounded-2xl border p-5 ${
+        isBusiness
+          ? "border-[#D6A84B] bg-[#FFFBEB] dark:border-[#8A6A2E] dark:bg-[#142B4A]"
+          : "border-[#93C5FD] bg-[#EFF6FF] dark:border-[#263D60] dark:bg-[#142B4A]"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div
+            className={`rounded-xl p-3 ${
+              isBusiness
+                ? "bg-[#FEF3C7] text-[#A16207]"
+                : "bg-[#DBEAFE] text-[#2563EB]"
+            }`}
+          >
+            {isBusiness ? <Crown size={22} /> : <BellRing size={22} />}
+          </div>
+
+          <div>
+            <h3 className="font-bold text-[#142B4A] dark:text-white">
+              {title}
+            </h3>
+            <p
+              className="mt-1 text-xs font-bold"
+              style={{ color: details.color }}
+            >
+              {details.name.toUpperCase()} FEATURE
+            </p>
+          </div>
+        </div>
+
+        {hasAccess ? (
+          <CheckCircle2 className="shrink-0 text-[#15803D]" size={22} />
+        ) : (
+          <Lock
+            className="shrink-0"
+            size={20}
+            style={{ color: details.color }}
+          />
+        )}
+      </div>
+
+      <p className="mt-4 text-sm leading-6 text-[#58708F] dark:text-[#A9BEDA]">
+        {description}
+      </p>
+
+      {hasAccess ? (
+        <p className="mt-4 text-sm font-bold text-[#15803D]">
+          Your {details.name} access is active.
+        </p>
+      ) : (
+        <a
+          href="/subscription"
+          className={`mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+            isBusiness
+              ? "bg-[#D6A84B] !text-[#142B4A] hover:bg-[#C49736]"
+              : "bg-[#2563EB] !text-white hover:bg-[#1D4ED8]"
+          }`}
+        >
+          <Lock size={15} />
+          Upgrade to {details.name}
+          <ArrowRight size={16} />
+        </a>
+      )}
+    </div>
+  );
+}
+
 export default function RemindersPage() {
   const [reminders, setReminders] =
     useState<Reminder[]>(initialReminders);
+
+  // Demo plan. Backend subscription data will replace this later.
+  const currentPlan: PlanType = "free";
+  const currentPlanDetails = PLAN_DETAILS[currentPlan];
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -260,7 +383,6 @@ export default function RemindersPage() {
 
   return (
     <div className="space-y-7 pb-10">
-
       {/* HEADER */}
       <section className="relative overflow-hidden rounded-3xl bg-[#142B4A] p-7 text-white md:p-9">
         <div className="pointer-events-none absolute -right-12 -top-16 h-64 w-64 rounded-full bg-[#2563EB]/25 blur-3xl" />
@@ -299,6 +421,59 @@ export default function RemindersPage() {
           are sent.
         </p>
       </div>
+
+      {/* MEMBERSHIP OVERVIEW */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-[#142B4A] dark:text-white">
+              Your Duego Membership
+            </h2>
+            <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
+              Your plan determines which reminder tools you can access.
+            </p>
+          </div>
+
+          <PlanBadge plan={currentPlan} />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <PremiumFeatureCard
+            title="Advanced Reminders"
+            description="Unlock advanced reminder management and tools for keeping track of important business tasks."
+            plan="pro"
+            featureId="advanced-reminders"
+            currentPlan={currentPlan}
+          />
+
+          <PremiumFeatureCard
+            title="Business Insights"
+            description="Unlock business-level insights to help monitor important business activities and follow-ups."
+            plan="business"
+            featureId="business-insights"
+            currentPlan={currentPlan}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D7E6F8] bg-white p-4 dark:border-[#263D60] dark:bg-[#142B4A]">
+          <div>
+            <p className="text-sm font-bold text-[#142B4A] dark:text-white">
+              Current membership: {currentPlanDetails.name}
+            </p>
+            <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
+              Plan price: ₹{currentPlanDetails.price} / month
+            </p>
+          </div>
+
+          <a
+            href="/subscription"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#142B4A] px-4 py-2.5 text-sm font-bold !text-white transition hover:bg-[#2563EB]"
+          >
+            View Plans
+            <ArrowRight size={16} />
+          </a>
+        </div>
+      </section>
 
       {/* NOTICE */}
       {notice && (
@@ -462,7 +637,6 @@ export default function RemindersPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-
             {/* SEARCH */}
             <div className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] px-3 dark:border-[#263D60] dark:bg-[#203D65]">
               <Search size={17} className="shrink-0 text-[#2563EB]" />
@@ -571,10 +745,7 @@ export default function RemindersPage() {
 
           {filteredReminders.length === 0 && (
             <div className="px-5 py-12 text-center">
-              <Bell
-                size={34}
-                className="mx-auto text-[#2563EB]"
-              />
+              <Bell size={34} className="mx-auto text-[#2563EB]" />
 
               <p className="mt-3 font-bold text-[#142B4A] dark:text-white">
                 No reminders found
