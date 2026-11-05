@@ -25,7 +25,6 @@ import {
   Building2,
   Receipt,
   Crown,
-  Home,
 } from "lucide-react";
 
 const navigation = [

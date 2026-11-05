@@ -23,10 +23,8 @@ import {
   AlertTriangle,
   Clock3,
   ScanSearch,
-  LockKeyhole,
   Activity,
   FileCheck,
-  TrendingUp,
 } from "lucide-react";
 
 const features = [
