@@ -20,6 +20,8 @@ import {
   ChevronRight,
   LogOut,
   FileCheck,
+  Sparkles,
+  Building2,
 } from "lucide-react";
 
 const navigation = [
@@ -55,20 +57,32 @@ function SidebarContent({
 }: SidebarProps) {
   const pathname = usePathname();
 
+  function isActive(href: string) {
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
   return (
     <>
-      <div className="flex h-20 items-center justify-between border-b border-border px-5">
+      {/* Brand */}
+      <div className="flex h-20 shrink-0 items-center justify-between border-b border-[#263D60] px-5">
         <Link
           href="/dashboard"
           onClick={onNavigate}
-          className="flex items-center gap-3"
+          className="flex min-w-0 items-center gap-3"
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground shadow-lg shadow-primary/20">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#2563EB] text-xl font-extrabold text-white shadow-lg shadow-[#2563EB]/25">
             D
           </div>
 
           {!collapsed && (
-            <span className="text-xl font-bold tracking-tight">Duego</span>
+            <div className="min-w-0">
+              <span className="block text-xl font-extrabold tracking-tight text-white">
+                Duego
+              </span>
+              <span className="block text-[10px] font-semibold tracking-[0.18em] text-[#93C5FD]">
+                BUSINESS WORKSPACE
+              </span>
+            </div>
           )}
         </Link>
 
@@ -77,26 +91,27 @@ function SidebarContent({
             type="button"
             onClick={onClose}
             aria-label="Close navigation"
-            className="rounded-lg p-2 text-muted hover:bg-surface-secondary lg:hidden"
+            className="rounded-xl p-2 text-[#BFDBFE] transition hover:bg-[#1E3A5F] hover:text-white lg:hidden"
           >
-            <X size={19} />
+            <X size={20} />
           </button>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-6">
+      {/* Navigation */}
+      <div className="flex-1 overflow-y-auto px-3 py-7">
         {navigation.map((group) => (
           <div key={group.title} className="mb-8">
             {!collapsed && (
-              <p className="mb-3 px-3 text-[10px] font-bold tracking-[0.16em] text-muted">
+              <p className="mb-3 px-3 text-[10px] font-extrabold tracking-[0.18em] text-[#93C5FD]">
                 {group.title}
               </p>
             )}
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const active = pathname === item.href;
+                const active = isActive(item.href);
 
                 return (
                   <Link
@@ -104,13 +119,23 @@ function SidebarContent({
                     href={item.href}
                     title={collapsed ? item.label : undefined}
                     onClick={onNavigate}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all ${
+                    aria-current={active ? "page" : undefined}
+                    className={`group relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-200 ${
                       active
-                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/15"
-                        : "text-muted hover:bg-surface-secondary hover:text-foreground"
-                    }`}
+                        ? "bg-[#2563EB] text-white shadow-lg shadow-[#2563EB]/20"
+                        : "text-[#BFDBFE] hover:bg-[#1E3A5F] hover:text-white"
+                    } ${collapsed ? "justify-center" : ""}`}
                   >
-                    <Icon size={19} className="shrink-0" />
+                    {active && (
+                      <span className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-[#D6A84B]" />
+                    )}
+
+                    <Icon
+                      size={19}
+                      strokeWidth={active ? 2.5 : 2}
+                      className="shrink-0"
+                    />
+
                     {!collapsed && <span>{item.label}</span>}
                   </Link>
                 );
@@ -119,16 +144,24 @@ function SidebarContent({
           </div>
         ))}
 
-        <div className="border-t border-border pt-5">
+        {/* Settings */}
+        <div className="border-t border-[#263D60] pt-5">
+          {!collapsed && (
+            <p className="mb-3 px-3 text-[10px] font-extrabold tracking-[0.18em] text-[#93C5FD]">
+              PREFERENCES
+            </p>
+          )}
+
           <Link
             href="/settings"
             onClick={onNavigate}
             title={collapsed ? "Settings" : undefined}
-            className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors ${
-              pathname === "/settings"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted hover:bg-surface-secondary hover:text-foreground"
-            }`}
+            aria-current={isActive("/settings") ? "page" : undefined}
+            className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-all ${
+              isActive("/settings")
+                ? "bg-[#2563EB] text-white"
+                : "text-[#BFDBFE] hover:bg-[#1E3A5F] hover:text-white"
+            } ${collapsed ? "justify-center" : ""}`}
           >
             <Settings size={19} className="shrink-0" />
             {!collapsed && "Settings"}
@@ -136,13 +169,17 @@ function SidebarContent({
         </div>
       </div>
 
-      <div className="border-t border-border p-4">
+      {/* Sidebar footer */}
+      <div className="shrink-0 border-t border-[#263D60] p-4">
         <Link
           href="/login"
           onClick={onNavigate}
-          className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted hover:bg-danger/10 hover:text-danger"
+          title={collapsed ? "Sign out" : undefined}
+          className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#BFDBFE] transition hover:bg-[#451A1A] hover:text-[#FCA5A5] ${
+            collapsed ? "justify-center" : ""
+          }`}
         >
-          <LogOut size={19} />
+          <LogOut size={19} className="shrink-0" />
           {!collapsed && "Sign out"}
         </Link>
       </div>
@@ -159,21 +196,21 @@ export default function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-
+    <div className="flex min-h-screen bg-[#F8FBFF] text-[#142B4A] dark:bg-[#0B1930] dark:text-white">
       {/* Desktop sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border bg-surface transition-[width] duration-300 lg:flex ${
+        className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-[#263D60] bg-[#142B4A] transition-[width] duration-300 lg:flex ${
           collapsed ? "w-20" : "w-72"
         }`}
       >
         <SidebarContent collapsed={collapsed} />
 
+        {/* Collapse button */}
         <button
           type="button"
           onClick={() => setCollapsed((value) => !value)}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="absolute -right-3 top-24 hidden h-7 w-7 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm hover:text-primary lg:flex"
+          className="absolute -right-3 top-24 hidden h-7 w-7 items-center justify-center rounded-full border border-[#BFDBFE] bg-white text-[#142B4A] shadow-md transition hover:bg-[#DBEAFE] lg:flex"
         >
           {collapsed ? (
             <ChevronRight size={15} />
@@ -183,17 +220,17 @@ export default function AppShell({
         </button>
       </aside>
 
-      {/* Mobile sidebar */}
+      {/* Mobile navigation */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
             aria-label="Close navigation overlay"
             onClick={() => setMobileOpen(false)}
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-[#081426]/75 backdrop-blur-sm"
           />
 
-          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col border-r border-border bg-surface shadow-2xl">
+          <aside className="absolute inset-y-0 left-0 flex w-[min(18rem,85vw)] flex-col border-r border-[#263D60] bg-[#142B4A] shadow-2xl">
             <SidebarContent
               collapsed={false}
               onNavigate={() => setMobileOpen(false)}
@@ -209,57 +246,81 @@ export default function AppShell({
           collapsed ? "lg:ml-20" : "lg:ml-72"
         }`}
       >
-        <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-border bg-background/90 px-5 backdrop-blur-xl sm:px-8">
-          <div className="flex items-center gap-3">
+        {/* Header */}
+        <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b border-[#D7E6F8] bg-white/95 px-4 backdrop-blur-xl dark:border-[#263D60] dark:bg-[#102440]/95 sm:px-8">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation"
-              className="rounded-xl border border-border p-2.5 text-muted hover:bg-surface-secondary lg:hidden"
+              className="rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-2.5 text-[#142B4A] transition hover:bg-[#DBEAFE] dark:border-[#35547B] dark:bg-[#1E3A5F] dark:text-white lg:hidden"
             >
               <Menu size={20} />
             </button>
 
-            <div>
-              <p className="text-sm font-bold">Business Workspace</p>
-              <p className="hidden text-xs text-muted sm:block">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <Building2
+                  size={17}
+                  className="shrink-0 text-[#2563EB] dark:text-[#93C5FD]"
+                />
+
+                <p className="truncate text-sm font-extrabold text-[#142B4A] dark:text-white sm:text-base">
+                  Business Workspace
+                </p>
+              </div>
+
+              <p className="mt-1 hidden text-xs text-[#58708F] dark:text-[#A9BEDA] sm:block">
                 Manage your business with Duego
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          {/* Header actions */}
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             <Link
               href="/reminders"
               aria-label="View notifications"
-              className="rounded-xl border border-border p-2.5 text-muted hover:bg-surface-secondary hover:text-primary"
+              title="Notifications"
+              className="relative rounded-xl border border-[#D7E6F8] bg-[#F8FBFF] p-2.5 text-[#142B4A] transition hover:border-[#2563EB] hover:bg-[#DBEAFE] dark:border-[#35547B] dark:bg-[#1E3A5F] dark:text-white dark:hover:bg-[#263D60]"
             >
               <Bell size={19} />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-[#D6A84B] dark:border-[#1E3A5F]" />
             </Link>
 
             <ThemeToggle />
 
             <Link
               href="/settings"
-              className="flex items-center gap-2 rounded-xl border border-border p-2 hover:bg-surface-secondary sm:px-3"
+              className="flex items-center gap-2 rounded-xl border border-[#D7E6F8] bg-white p-1.5 transition hover:border-[#2563EB] hover:bg-[#EFF6FF] dark:border-[#35547B] dark:bg-[#1E3A5F] dark:hover:bg-[#263D60] sm:px-3"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2563EB] text-sm font-extrabold text-white">
                 U
               </div>
 
-              <span className="hidden text-sm font-semibold sm:block">
+              <span className="hidden text-sm font-bold text-[#142B4A] dark:text-white sm:block">
                 My Account
               </span>
             </Link>
           </div>
         </header>
 
-        <main className="flex-1 p-5 sm:p-8">
+        {/* Page content */}
+        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
           {children}
         </main>
 
-        <footer className="border-t border-border px-6 py-5 text-center text-xs text-muted">
-          © 2026 Duego · Business Document Intelligence
+        {/* Footer */}
+        <footer className="border-t border-[#D7E6F8] bg-white px-5 py-5 text-center dark:border-[#263D60] dark:bg-[#102440]">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-[#58708F] dark:text-[#A9BEDA]">
+            <Sparkles
+              size={14}
+              className="text-[#D6A84B]"
+            />
+            <span>
+              © 2026 Duego · Business Document Intelligence
+            </span>
+          </div>
         </footer>
       </div>
     </div>
