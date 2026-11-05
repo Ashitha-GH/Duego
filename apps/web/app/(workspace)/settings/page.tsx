@@ -30,7 +30,16 @@ import {
   Settings2,
   Eye,
   EyeOff,
+  BriefcaseBusiness,
+  CalendarDays,
+  FileText,
+  Zap,
 } from "lucide-react";
+
+import {
+  PLAN_DETAILS,
+  type PlanType,
+} from "@/lib/subscription/feature-config";
 
 type SettingsTab =
   | "profile"
@@ -38,8 +47,6 @@ type SettingsTab =
   | "notifications"
   | "security"
   | "subscription";
-
-type PlanName = "Free" | "Pro" | "Business";
 
 const tabs: {
   id: SettingsTab;
@@ -132,6 +139,11 @@ export default function SettingsPage() {
 
   const { theme, setTheme } = useTheme();
 
+  // DEMO SUBSCRIPTION
+  // Later replace this with the logged-in user's backend subscription.
+  const currentPlan: PlanType = "free";
+  const currentPlanDetails = PLAN_DETAILS[currentPlan];
+
   function showSavedNotice(message: string) {
     setSaved(true);
     setNotice(message);
@@ -209,14 +221,6 @@ export default function SettingsPage() {
       confirm: "",
     });
   }
-
-  const currentPlan: PlanName = "Free";
-
-  const planPrice: Record<PlanName, number> = {
-    Free: 0,
-    Pro: 199,
-    Business: 299,
-  };
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-7 pb-10">
@@ -421,7 +425,7 @@ export default function SettingsPage() {
                   label="Role"
                   value={profile.role}
                   onChange={(value) => updateProfile("role", value)}
-                  icon={<Building2 size={17} />}
+                  icon={<BriefcaseBusiness size={17} />}
                 />
               </div>
 
@@ -530,36 +534,12 @@ export default function SettingsPage() {
               <div className="space-y-3">
                 {(
                   [
-                    [
-                      "email",
-                      "Email Notifications",
-                      "Receive updates through email.",
-                    ],
-                    [
-                      "deadlines",
-                      "Deadline Alerts",
-                      "Get notified about upcoming and overdue deadlines.",
-                    ],
-                    [
-                      "payments",
-                      "Payment Notifications",
-                      "Receive payment status updates.",
-                    ],
-                    [
-                      "documentAnalysis",
-                      "AI Document Analysis",
-                      "Get notified when document analysis is ready.",
-                    ],
-                    [
-                      "reminders",
-                      "Reminder Notifications",
-                      "Receive your scheduled reminder alerts.",
-                    ],
-                    [
-                      "marketing",
-                      "Product Updates",
-                      "Receive announcements and product news.",
-                    ],
+                    ["email", "Email Notifications", "Receive updates through email."],
+                    ["deadlines", "Deadline Alerts", "Get notified about upcoming and overdue deadlines."],
+                    ["payments", "Payment Notifications", "Receive payment status updates."],
+                    ["documentAnalysis", "AI Document Analysis", "Get notified when document analysis is ready."],
+                    ["reminders", "Reminder Notifications", "Receive your scheduled reminder alerts."],
+                    ["marketing", "Product Updates", "Receive announcements and product news."],
                   ] as const
                 ).map(([key, title, description]) => (
                   <div
@@ -606,14 +586,9 @@ export default function SettingsPage() {
                       "Notification preferences updated in preview mode. They have not been saved to your account."
                     )
                   }
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#142B4A] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#2563EB]"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#142B4A] px-5 py-3 text-sm font-bold !text-white transition hover:bg-[#2563EB]"
                 >
-                  {saved ? (
-                    <CheckCircle2 size={17} />
-                  ) : (
-                    <Save size={17} />
-                  )}
-
+                  {saved ? <CheckCircle2 size={17} /> : <Save size={17} />}
                   {saved ? "Saved (preview)" : "Save Preferences"}
                 </button>
               </div>
@@ -712,7 +687,7 @@ export default function SettingsPage() {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#142B4A] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#2563EB]"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#142B4A] px-5 py-3 text-sm font-bold !text-white transition hover:bg-[#2563EB]"
                 >
                   <Lock size={17} />
                   Validate Password (Preview)
@@ -730,6 +705,7 @@ export default function SettingsPage() {
                 icon={CreditCard}
               />
 
+              {/* CURRENT PLAN */}
               <div className="overflow-hidden rounded-2xl border border-[#D7E6F8] dark:border-[#263D60]">
                 <div className="flex flex-col justify-between gap-4 bg-[#142B4A] p-6 text-white sm:flex-row sm:items-center">
                   <div>
@@ -739,78 +715,124 @@ export default function SettingsPage() {
                     </p>
 
                     <h3 className="mt-3 text-2xl font-bold">
-                      {currentPlan} Plan
+                      {currentPlanDetails.name} Plan
                     </h3>
 
                     <p className="mt-1 text-sm text-[#DBEAFE]">
-                      {money(planPrice[currentPlan])} / month
+                      {money(currentPlanDetails.price)} / month
                     </p>
                   </div>
 
-                  <span className="w-fit rounded-full bg-[#DBEAFE] px-4 py-2 text-xs font-bold text-[#142B4A]">
-                    Preview Account
+                  <span
+                    className="w-fit rounded-full px-4 py-2 text-xs font-bold"
+                    style={{
+                      backgroundColor: `${currentPlanDetails.color}30`,
+                      color: "#FFFFFF",
+                    }}
+                  >
+                    Demo Account
                   </span>
                 </div>
 
                 <div className="bg-[#EFF6FF] p-5 dark:bg-[#203D65]">
                   <p className="text-sm leading-6 text-[#58708F] dark:text-[#DBEAFE]">
-                    The displayed current plan is demonstration data.
-                    Your actual subscription will be loaded from the
-                    backend after account integration.
+                    Your current plan is displayed using frontend
+                    demonstration data. Your actual subscription will
+                    be loaded from the backend after integration.
                   </p>
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[
-                  {
-                    name: "Free",
-                    price: 0,
-                    description: "Essential document management.",
-                  },
-                  {
-                    name: "Pro",
-                    price: 199,
-                    description: "Advanced AI and business insights.",
-                  },
-                  {
-                    name: "Business",
-                    price: 299,
-                    description: "Expanded business and team features.",
-                  },
-                ].map((plan) => (
-                  <div
-                    key={plan.name}
-                    className={`rounded-xl border p-5 ${
-                      plan.name === currentPlan
-                        ? "border-[#2563EB] bg-[#EFF6FF] dark:bg-[#203D65]"
-                        : "border-[#D7E6F8] bg-white dark:border-[#263D60] dark:bg-[#142B4A]"
-                    }`}
-                  >
-                    <p className="text-sm font-bold text-[#142B4A] dark:text-white">
-                      {plan.name} Plan
-                    </p>
+              {/* PLAN COMPARISON */}
+              <div>
+                <h3 className="mb-4 font-bold text-[#142B4A] dark:text-white">
+                  Available Plans
+                </h3>
 
-                    <p className="mt-3 text-2xl font-bold text-[#142B4A] dark:text-white">
-                      {money(plan.price)}
-                      <span className="ml-1 text-xs font-medium text-[#58708F] dark:text-[#A9BEDA]">
-                        / month
-                      </span>
-                    </p>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {(
+                    ["free", "pro", "business"] as PlanType[]
+                  ).map((plan) => {
+                    const details = PLAN_DETAILS[plan];
+                    const active = plan === currentPlan;
 
-                    <p className="mt-2 text-xs leading-5 text-[#58708F] dark:text-[#A9BEDA]">
-                      {plan.description}
-                    </p>
+                    const descriptions: Record<PlanType, string> = {
+                      free: "Essential document management and basic business tools.",
+                      pro: "Advanced AI analysis and additional productivity features.",
+                      business: "Expanded business intelligence and reporting features.",
+                    };
 
-                    {plan.name === currentPlan && (
-                      <span className="mt-4 inline-flex rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-bold text-[#166534]">
-                        Current Plan
-                      </span>
-                    )}
-                  </div>
-                ))}
+                    const icons: Record<PlanType, typeof User> = {
+                      free: FileText,
+                      pro: Sparkles,
+                      business: Crown,
+                    };
+
+                    const Icon = icons[plan];
+
+                    return (
+                      <div
+                        key={plan}
+                        className={`rounded-2xl border p-5 transition ${
+                          active
+                            ? "border-[#2563EB] bg-[#EFF6FF] dark:bg-[#203D65]"
+                            : "border-[#D7E6F8] bg-white dark:border-[#263D60] dark:bg-[#142B4A]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span
+                            className="rounded-xl p-3"
+                            style={{
+                              backgroundColor: `${details.color}20`,
+                              color: details.color,
+                            }}
+                          >
+                            <Icon size={22} />
+                          </span>
+
+                          {active && (
+                            <CheckCircle2
+                              size={21}
+                              className="text-[#15803D]"
+                            />
+                          )}
+                        </div>
+
+                        <h4 className="mt-4 text-lg font-bold text-[#142B4A] dark:text-white">
+                          {details.name}
+                        </h4>
+
+                        <p className="mt-2 text-2xl font-bold text-[#142B4A] dark:text-white">
+                          {money(details.price)}
+                          <span className="ml-1 text-xs font-medium text-[#58708F] dark:text-[#A9BEDA]">
+                            / month
+                          </span>
+                        </p>
+
+                        <p className="mt-3 min-h-12 text-xs leading-5 text-[#58708F] dark:text-[#A9BEDA]">
+                          {descriptions[plan]}
+                        </p>
+
+                        {active ? (
+                          <span className="mt-4 inline-flex rounded-full bg-[#DCFCE7] px-3 py-1.5 text-xs font-bold text-[#166534]">
+                            Current Plan
+                          </span>
+                        ) : (
+                          <Link
+                            href="/subscription"
+                            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#142B4A] px-3 py-2.5 text-xs font-bold !text-white transition hover:bg-[#2563EB]"
+                          >
+                            View Plan
+                            <ArrowRight size={15} />
+                          </Link>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
+              {/* SUBSCRIPTION ACTIONS */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <Link
                   href="/subscription"
@@ -828,10 +850,7 @@ export default function SettingsPage() {
 
                   <span className="mt-4 flex items-center gap-2 text-sm font-bold text-[#2563EB]">
                     View Plans
-                    <ArrowRight
-                      size={16}
-                      className="transition-transform group-hover:translate-x-1"
-                    />
+                    <ArrowRight size={16} />
                   </span>
                 </Link>
 
@@ -851,10 +870,7 @@ export default function SettingsPage() {
 
                   <span className="mt-4 flex items-center gap-2 text-sm font-bold text-[#2563EB]">
                     View History
-                    <ArrowRight
-                      size={16}
-                      className="transition-transform group-hover:translate-x-1"
-                    />
+                    <ArrowRight size={16} />
                   </span>
                 </Link>
               </div>
@@ -877,7 +893,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* APPEARANCE — AVAILABLE ON EVERY TAB */}
+          {/* APPEARANCE */}
           <div className="mt-8 border-t border-[#D7E6F8] pt-7 dark:border-[#263D60]">
             <SectionHeading
               title="Appearance"
@@ -1082,14 +1098,9 @@ function SaveButton({
     <div className="flex justify-end">
       <button
         type="submit"
-        className="inline-flex items-center gap-2 rounded-xl bg-[#142B4A] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#2563EB]"
+        className="inline-flex items-center gap-2 rounded-xl bg-[#142B4A] px-5 py-3 text-sm font-bold !text-white transition hover:bg-[#2563EB]"
       >
-        {saved ? (
-          <CheckCircle2 size={17} />
-        ) : (
-          <Save size={17} />
-        )}
-
+        {saved ? <CheckCircle2 size={17} /> : <Save size={17} />}
         {saved ? "Saved (preview)" : "Save Changes"}
       </button>
     </div>
