@@ -94,6 +94,7 @@ class PaymentRecipientResponse(BaseModel):
 
 class PaymentOrderCreate(BaseModel):
     payment_id: int
+    recipient_id: int
 
 
 class PaymentTransactionResponse(BaseModel):

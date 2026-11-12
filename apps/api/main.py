@@ -2079,3 +2079,79 @@ def create_payment_recipient(
     db.refresh(new_recipient)
 
     return new_recipient
+
+
+# =========================================================
+# CREATE RAZORPAY PAYMENT ORDER
+# =========================================================
+
+import uuid
+
+@app.post("/payments/create-order")
+def create_razorpay_order(
+    order_data: PaymentOrderCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    payment = (
+        db.query(models.Payment)
+        .join(models.Document)
+        .filter(
+            models.Payment.id == order_data.payment_id,
+            models.Document.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if payment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Payment not found",
+        )
+
+    if payment.status != "PENDING":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only pending payments can be processed",
+        )
+
+    transaction_reference = str(uuid.uuid4())
+
+    amount_in_paise = payment.amount * 100
+
+    razorpay_order = razorpay_client.order.create(
+        {
+            "amount": amount_in_paise,
+            "currency": "INR",
+            "receipt": transaction_reference,
+        }
+    )
+
+    return {
+        "message": "Razorpay order created successfully",
+        "transaction_reference": transaction_reference,
+        "razorpay_order_id": razorpay_order["id"],
+        "amount": amount_in_paise,
+        "currency": "INR",
+        "razorpay_key_id": os.getenv("RAZORPAY_KEY_ID"),
+    }
+
+# =========================================================
+# GET PAYMENT RECIPIENTS
+# =========================================================
+
+@app.get("/payment-recipients", response_model=list[PaymentRecipientResponse])
+def get_payment_recipients(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    recipients = (
+        db.query(models.PaymentRecipient)
+        .filter(
+            models.PaymentRecipient.user_id == current_user.id,
+            models.PaymentRecipient.is_active == True,
+        )
+        .all()
+    )
+
+    return recipients
