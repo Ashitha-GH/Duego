@@ -13,70 +13,30 @@ import {
   CreditCard,
   Receipt,
   ArrowLeft,
-  Sparkles,
-  X,
-  CalendarDays,
   ArrowRight,
   LockKeyhole,
   CircleCheck,
   Info,
+  X,
+  CalendarDays,
+  Sparkles,
+  Star,
 } from "lucide-react";
 
-type PlanName = "Free" | "Pro" | "Business";
+import {
+  PLAN_DETAILS,
+  PLAN_ORDER,
+  FEATURES,
+  type PlanType,
+} from "@/lib/subscription/feature-config";
 
-type Plan = {
-  name: PlanName;
-  price: number;
-  description: string;
-  icon: typeof ShieldCheck;
-  features: string[];
-  popular?: boolean;
+const CURRENT_PLAN: PlanType = "free";
+
+const PLAN_ICONS = {
+  free: ShieldCheck,
+  pro: Zap,
+  business: Building2,
 };
-
-const plans: Plan[] = [
-  {
-    name: "Free",
-    price: 0,
-    description: "Get started with essential document management.",
-    icon: ShieldCheck,
-    features: [
-      "Basic document management",
-      "Limited AI document analysis",
-      "Basic deadline reminders",
-      "Document search",
-      "Personal workspace",
-    ],
-  },
-  {
-    name: "Pro",
-    price: 199,
-    description: "More intelligence and control for growing businesses.",
-    icon: Zap,
-    popular: true,
-    features: [
-      "Everything in Free",
-      "Increased AI document analysis",
-      "AI risk detection",
-      "Advanced deadline reminders",
-      "Obligation tracking",
-      "Detailed document insights",
-    ],
-  },
-  {
-    name: "Business",
-    price: 299,
-    description: "Advanced tools for teams and business operations.",
-    icon: Building2,
-    features: [
-      "Everything in Pro",
-      "Higher AI usage limits",
-      "Team collaboration",
-      "Advanced analytics",
-      "Business reports",
-      "Priority support",
-    ],
-  },
-];
 
 const money = (amount: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -85,20 +45,29 @@ const money = (amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount);
 
+const getPlanFeatures = (plan: PlanType) => {
+  const planRank = PLAN_ORDER[plan];
+
+  return FEATURES.filter(
+    (feature) => PLAN_ORDER[feature.requiredPlan] <= planRank
+  );
+};
+
 export default function SubscriptionPage() {
-  const [currentPlan] = useState<PlanName>("Free");
-  const [selectedPlan, setSelectedPlan] = useState<PlanName | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [notice, setNotice] = useState("");
 
-  const selectedPlanDetails = plans.find(
-    (plan) => plan.name === selectedPlan
-  );
+  const selectedPlanDetails = selectedPlan
+    ? PLAN_DETAILS[selectedPlan]
+    : null;
 
-  function choosePlan(plan: PlanName) {
+  const currentPlanDetails = PLAN_DETAILS[CURRENT_PLAN];
+
+  function choosePlan(plan: PlanType) {
     setNotice("");
 
-    if (plan === currentPlan) {
-      setNotice("This is already your current preview plan.");
+    if (plan === CURRENT_PLAN) {
+      setNotice("You are already using the Free preview plan.");
       return;
     }
 
@@ -106,10 +75,10 @@ export default function SubscriptionPage() {
   }
 
   function confirmSelection() {
-    if (!selectedPlanDetails) return;
+    if (!selectedPlan || !selectedPlanDetails) return;
 
     setNotice(
-      `${selectedPlanDetails.name} plan selected in preview mode. Payment and subscription activation are not available until backend and payment gateway integration is completed.`
+      `${selectedPlanDetails.name} plan selected in preview mode. Your current plan has not changed. Payment gateway and backend subscription integration are required before activation.`
     );
 
     setSelectedPlan(null);
@@ -117,8 +86,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="space-y-8 pb-10">
-
-      {/* PAGE HEADER */}
+      {/* HEADER */}
       <section className="relative overflow-hidden rounded-3xl bg-[#142B4A] p-7 text-white md:p-9">
         <div className="pointer-events-none absolute -right-12 -top-16 h-64 w-64 rounded-full bg-[#2563EB]/25 blur-3xl" />
 
@@ -134,9 +102,9 @@ export default function SubscriptionPage() {
             </h1>
 
             <p className="mt-3 max-w-xl text-sm leading-6 text-[#DBEAFE]">
-              Choose a plan that matches your business needs.
-              Manage your documents, obligations, deadlines and
-              AI-powered insights from one workspace.
+              Choose the right Duego membership for your business.
+              Unlock more AI intelligence, business insights and
+              productivity features as you grow.
             </p>
           </div>
 
@@ -146,7 +114,7 @@ export default function SubscriptionPage() {
         </div>
       </section>
 
-      {/* CURRENT SUBSCRIPTION */}
+      {/* CURRENT PLAN */}
       <section className="overflow-hidden rounded-2xl border border-[#D7E6F8] bg-[#EFF6FF] dark:border-[#263D60] dark:bg-[#142B4A]">
         <div className="flex flex-col justify-between gap-5 p-5 md:flex-row md:items-center md:p-6">
           <div className="flex items-center gap-4">
@@ -160,12 +128,11 @@ export default function SubscriptionPage() {
               </p>
 
               <h2 className="mt-1 text-xl font-bold text-[#142B4A] dark:text-white">
-                {currentPlan} Plan
+                {currentPlanDetails.name} Plan
               </h2>
 
               <p className="mt-1 text-sm text-[#58708F] dark:text-[#A9BEDA]">
-                {money(plans.find((p) => p.name === currentPlan)?.price ?? 0)}
-                {" / month"}
+                {money(currentPlanDetails.price)} / month
               </p>
             </div>
           </div>
@@ -184,8 +151,9 @@ export default function SubscriptionPage() {
 
         <div className="border-t border-[#D7E6F8] bg-white/70 px-5 py-3 dark:border-[#263D60] dark:bg-[#203D65] md:px-6">
           <p className="text-xs leading-5 text-[#58708F] dark:text-[#DBEAFE]">
-            Your displayed plan is demonstration data. Actual subscription
-            information will come from your account and billing backend.
+            The current plan is demonstration data. Actual membership
+            information will be loaded from the account and billing backend
+            after integration.
           </p>
         </div>
       </section>
@@ -212,7 +180,7 @@ export default function SubscriptionPage() {
         </motion.div>
       )}
 
-      {/* PLAN SELECTION */}
+      {/* PRICING PLANS */}
       <section>
         <div className="mb-7 text-center">
           <p className="text-sm font-bold uppercase tracking-wider text-[#2563EB]">
@@ -224,8 +192,8 @@ export default function SubscriptionPage() {
           </h2>
 
           <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#58708F] dark:text-[#A9BEDA]">
-            Start with the essentials or unlock more capabilities
-            as your business grows.
+            Start with essential tools and upgrade whenever your
+            business needs more capabilities.
           </p>
 
           <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#D7E6F8] bg-white px-4 py-2 text-sm font-semibold text-[#142B4A] dark:border-[#263D60] dark:bg-[#142B4A] dark:text-white">
@@ -235,23 +203,27 @@ export default function SubscriptionPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {plans.map((plan, index) => {
-            const Icon = plan.icon;
-            const isCurrent = currentPlan === plan.name;
+          {(Object.keys(PLAN_ORDER) as PlanType[])
+            .sort((a, b) => PLAN_ORDER[a] - PLAN_ORDER[b])
+            .map((planKey, index) => {
+            const plan = PLAN_DETAILS[planKey];
+            const Icon = PLAN_ICONS[planKey];
+            const isCurrent = CURRENT_PLAN === planKey;
+            const features = getPlanFeatures(planKey);
 
             return (
               <motion.article
-                key={plan.name}
+                key={planKey}
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.12 }}
                 className={`relative flex flex-col rounded-2xl border p-6 ${
-                  plan.popular
+                  planKey === "pro"
                     ? "border-[#2563EB] bg-[#EFF6FF] shadow-xl shadow-[#2563EB]/10 dark:bg-[#203D65]"
                     : "border-[#D7E6F8] bg-white dark:border-[#263D60] dark:bg-[#142B4A]"
                 }`}
               >
-                {plan.popular && (
+                {planKey === "pro" && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#2563EB] px-5 py-1.5 text-xs font-bold text-white shadow-md">
                     MOST POPULAR
                   </span>
@@ -274,7 +246,14 @@ export default function SubscriptionPage() {
                 </h3>
 
                 <p className="mt-2 min-h-12 text-sm leading-6 text-[#58708F] dark:text-[#A9BEDA]">
-                  {plan.description}
+                  {planKey === "free" &&
+                    "Get started with essential document and deadline management."}
+
+                  {planKey === "pro" &&
+                    "Get advanced AI intelligence and better control over your work."}
+
+                  {planKey === "business" &&
+                    "Unlock advanced business insights and operational capabilities."}
                 </p>
 
                 <div className="mt-6 flex items-end gap-1">
@@ -289,26 +268,38 @@ export default function SubscriptionPage() {
 
                 <div className="my-6 h-px bg-[#D7E6F8] dark:bg-[#263D60]" />
 
-                <p className="mb-4 text-sm font-bold text-[#142B4A] dark:text-white">
-                  Plan Features
-                </p>
+                <div className="mb-4 flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-[#142B4A] dark:text-white">
+                    Included Features
+                  </p>
 
-                <div className="flex-1 space-y-3">
-                  {plan.features.map((feature) => (
-                    <div key={feature} className="flex items-start gap-3">
+                  <span className="rounded-full bg-[#DBEAFE] px-2.5 py-1 text-xs font-bold text-[#142B4A]">
+                    {features.length} features
+                  </span>
+                </div>
+
+                <div className="flex-1 space-y-4">
+                  {features.map((feature) => (
+                    <div key={feature.id} className="flex items-start gap-3">
                       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#DBEAFE] text-[#2563EB]">
                         <Check size={13} strokeWidth={3} />
                       </span>
 
-                      <span className="text-sm leading-5 text-[#58708F] dark:text-[#DBEAFE]">
-                        {feature}
-                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-[#142B4A] dark:text-[#DBEAFE]">
+                          {feature.name}
+                        </p>
+
+                        <p className="mt-0.5 text-xs leading-5 text-[#58708F] dark:text-[#A9BEDA]">
+                          {feature.description}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 <button
-                  onClick={() => choosePlan(plan.name)}
+                  onClick={() => choosePlan(planKey)}
                   disabled={isCurrent}
                   className={`mt-8 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold transition ${
                     isCurrent
@@ -330,6 +321,51 @@ export default function SubscriptionPage() {
                 </button>
               </motion.article>
             );
+            })}
+        </div>
+      </section>
+
+      {/* FEATURE ACCESS OVERVIEW */}
+      <section className="rounded-2xl border border-[#D7E6F8] bg-white p-5 dark:border-[#263D60] dark:bg-[#142B4A] md:p-6">
+        <div className="mb-5">
+          <div className="flex items-center gap-2">
+            <Star size={20} className="text-[#D6A84B]" />
+            <h2 className="text-xl font-bold text-[#142B4A] dark:text-white">
+              Feature Access Overview
+            </h2>
+          </div>
+
+          <p className="mt-2 text-sm leading-6 text-[#58708F] dark:text-[#A9BEDA]">
+            See which membership unlocks each Duego capability.
+            Feature access follows the shared subscription configuration.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {FEATURES.map((feature) => {
+            const requiredPlan = PLAN_DETAILS[feature.requiredPlan];
+
+            return (
+              <div
+                key={feature.id}
+                className="flex flex-col justify-between gap-3 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] p-4 dark:border-[#263D60] dark:bg-[#203D65] sm:flex-row sm:items-center"
+              >
+                <div>
+                  <p className="font-bold text-[#142B4A] dark:text-white">
+                    {feature.name}
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-[#58708F] dark:text-[#A9BEDA]">
+                    {feature.description}
+                  </p>
+                </div>
+
+                <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-bold text-[#142B4A] dark:bg-[#142B4A] dark:text-white">
+                  <LockKeyhole size={13} className="text-[#2563EB]" />
+                  {requiredPlan.name} Plan
+                </span>
+              </div>
+            );
           })}
         </div>
       </section>
@@ -342,7 +378,7 @@ export default function SubscriptionPage() {
           </h2>
 
           <p className="mt-1 text-sm text-[#58708F] dark:text-[#A9BEDA]">
-            Access your subscription billing information and payment records.
+            Access subscription billing information and payment records.
           </p>
         </div>
 
@@ -357,7 +393,7 @@ export default function SubscriptionPage() {
             </h3>
 
             <p className="mt-2 text-sm leading-6 text-[#58708F] dark:text-[#A9BEDA]">
-              Manage your subscription payment method, renewal preferences
+              Manage subscription payment methods, renewal preferences
               and billing status.
             </p>
 
@@ -380,8 +416,8 @@ export default function SubscriptionPage() {
             </h3>
 
             <p className="mt-2 text-sm leading-6 text-[#58708F] dark:text-[#A9BEDA]">
-              View subscription payment records, invoices, transaction
-              references and payment statuses.
+              View subscription records, invoices, transaction references
+              and payment statuses.
             </p>
 
             <div className="mt-5 flex items-center gap-2 text-sm font-bold text-[#2563EB]">
@@ -395,7 +431,7 @@ export default function SubscriptionPage() {
         </div>
       </section>
 
-      {/* SUBSCRIPTION INFORMATION */}
+      {/* SECURITY INFORMATION */}
       <section className="rounded-2xl border border-[#D7E6F8] bg-[#EFF6FF] p-5 dark:border-[#263D60] dark:bg-[#142B4A] md:p-6">
         <div className="flex items-start gap-3">
           <ShieldCheck size={23} className="mt-0.5 shrink-0 text-[#2563EB]" />
@@ -406,17 +442,17 @@ export default function SubscriptionPage() {
             </h3>
 
             <p className="mt-2 text-sm leading-6 text-[#58708F] dark:text-[#DBEAFE]">
-              Duego will use verified payment information to manage
-              subscription activation, renewals, cancellations and failed
-              payments. Payment status will be confirmed by the backend
-              rather than simply trusting a browser response.
+              Subscription activation, renewals, cancellations and failed
+              payments must be verified by the backend. Duego will not
+              activate a paid plan simply because a browser reports
+              that a payment was successful.
             </p>
           </div>
         </div>
       </section>
 
-      {/* PREVIEW NOTICE */}
-      <div className="rounded-2xl border border-[#93C5FD] bg-[#EFF6FF] p-5 dark:border-[#263D60] dark:bg-[#203D65]">
+      {/* PREVIEW MODE */}
+      <section className="rounded-2xl border border-[#93C5FD] bg-[#EFF6FF] p-5 dark:border-[#263D60] dark:bg-[#203D65]">
         <div className="flex items-start gap-3">
           <Info size={21} className="mt-0.5 shrink-0 text-[#2563EB]" />
 
@@ -426,15 +462,14 @@ export default function SubscriptionPage() {
             </p>
 
             <p className="mt-1 text-sm leading-6 text-[#58708F] dark:text-[#DBEAFE]">
-              The plans and selection process on this page are currently
-              demonstrations. No payment is collected, no subscription
-              is activated, and no renewal is scheduled. These features
-              will become functional after backend and payment gateway
-              integration.
+              Plans and selection are currently demonstrations.
+              No payment is collected, no paid subscription is activated,
+              and no renewal is scheduled. These actions will become
+              functional after backend and payment gateway integration.
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* BACK TO PAYMENTS */}
       <Link
@@ -446,7 +481,7 @@ export default function SubscriptionPage() {
       </Link>
 
       {/* PLAN CONFIRMATION MODAL */}
-      {selectedPlanDetails && (
+      {selectedPlan && selectedPlanDetails && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[#142B4A]/75 p-4 backdrop-blur-sm"
           onClick={() => setSelectedPlan(null)}

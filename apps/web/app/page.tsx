@@ -5,9 +5,9 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import HeroSection from "@/components/hero-section";
-import DocumentWorkspace from "@/components/document-workspace";
 import DeadlineSection from "@/components/deadline-section";
 import PricingSection from "@/components/pricing-section";
+
 import {
   FileText,
   BrainCircuit,
@@ -20,6 +20,11 @@ import {
   Building2,
   Wallet,
   Crown,
+  AlertTriangle,
+  Clock3,
+  ScanSearch,
+  Activity,
+  FileCheck,
 } from "lucide-react";
 
 const features = [
@@ -33,7 +38,7 @@ const features = [
     icon: BrainCircuit,
     title: "AI-Powered Analysis",
     description:
-      "Extract important information, obligations, risks and key details from documents.",
+      "Identify important information, obligations, risks and key details with AI.",
   },
   {
     icon: CalendarCheck,
@@ -52,23 +57,27 @@ const features = [
 const steps = [
   {
     number: "01",
-    title: "Upload",
-    description: "Add your business documents to your Duego workspace.",
+    title: "Organize",
+    description:
+      "Keep your business documents together in your Duego workspace.",
   },
   {
     number: "02",
     title: "Analyse",
-    description: "AI helps identify important information and obligations.",
+    description:
+      "AI helps identify important information, risks and obligations.",
   },
   {
     number: "03",
     title: "Review",
-    description: "Check and confirm the information extracted from documents.",
+    description:
+      "Review extracted information and understand your responsibilities.",
   },
   {
     number: "04",
     title: "Stay Ahead",
-    description: "Monitor deadlines and manage your upcoming responsibilities.",
+    description:
+      "Monitor deadlines, reminders and important business activities.",
   },
 ];
 
@@ -77,6 +86,30 @@ const highlights = [
   "Identify important obligations",
   "Track upcoming deadlines",
   "Manage reminders and payments",
+];
+
+const analysisItems = [
+  {
+    label: "Key information",
+    detail: "Important terms and details",
+    icon: ScanSearch,
+    color: "text-[#2563EB]",
+    background: "bg-[#DBEAFE]",
+  },
+  {
+    label: "Risk detection",
+    detail: "Potential issues highlighted",
+    icon: AlertTriangle,
+    color: "text-[#B7791F]",
+    background: "bg-[#FEF3C7]",
+  },
+  {
+    label: "Obligations",
+    detail: "Responsibilities identified",
+    icon: FileCheck,
+    color: "text-[#2563EB]",
+    background: "bg-[#DBEAFE]",
+  },
 ];
 
 export default function Home() {
@@ -90,17 +123,28 @@ export default function Home() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#142B4A] text-lg font-extrabold text-white shadow-lg dark:bg-[#2563EB]">
               D
             </div>
+
             <span className="text-2xl font-extrabold tracking-tight text-[#142B4A] dark:text-white">
               Duego
             </span>
           </Link>
 
           <nav className="hidden items-center gap-6 text-sm font-semibold text-[#58708F] lg:flex">
-            <a href="#features" className="transition hover:text-[#2563EB]">Features</a>
-            <a href="#upload" className="transition hover:text-[#2563EB]">AI Analysis</a>
-            <a href="#deadlines" className="transition hover:text-[#2563EB]">Deadlines</a>
-            <a href="#how-it-works" className="transition hover:text-[#2563EB]">How It Works</a>
-            <a href="#pricing" className="transition hover:text-[#2563EB]">Pricing</a>
+            <a href="#features" className="transition hover:text-[#2563EB]">
+              Features
+            </a>
+            <a href="#ai-intelligence" className="transition hover:text-[#2563EB]">
+              AI Intelligence
+            </a>
+            <a href="#deadlines" className="transition hover:text-[#2563EB]">
+              Deadlines
+            </a>
+            <a href="#how-it-works" className="transition hover:text-[#2563EB]">
+              How It Works
+            </a>
+            <a href="#pricing" className="transition hover:text-[#2563EB]">
+              Pricing
+            </a>
           </nav>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -129,10 +173,16 @@ export default function Home() {
       {/* FEATURES */}
       <section
         id="features"
-        className="border-t border-[#D7E6F8] bg-[#EFF6FF] py-20 dark:border-[#263D60] dark:bg-[#10213B] md:py-24"
+        className="scroll-mt-24 border-t border-[#D7E6F8] bg-[#EFF6FF] py-20 dark:border-[#263D60] dark:bg-[#10213B] md:py-24"
       >
         <div className="mx-auto max-w-7xl px-6">
-          <div className="max-w-2xl">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-2xl"
+          >
             <span className="inline-flex items-center gap-2 rounded-full border border-[#D7E6F8] bg-white px-4 py-2 text-sm font-bold text-[#2563EB] dark:border-[#263D60] dark:bg-[#142B4A]">
               <Sparkles size={16} />
               Everything in One Workspace
@@ -149,7 +199,7 @@ export default function Home() {
               Duego brings document intelligence, business obligations,
               deadlines and reminders together in one connected experience.
             </p>
-          </div>
+          </motion.div>
 
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((feature, index) => {
@@ -158,15 +208,22 @@ export default function Home() {
               return (
                 <motion.div
                   key={feature.title}
-                  initial={{ opacity: 0, y: 18 }}
+                  initial={{ opacity: 0, y: 35 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1, duration: 0.45 }}
-                  className="group rounded-2xl border border-[#D7E6F8] bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[#2563EB] hover:shadow-xl hover:shadow-[#2563EB]/10 dark:border-[#263D60] dark:bg-[#142B4A]"
+                  transition={{
+                    delay: index * 0.12,
+                    duration: 0.55,
+                  }}
+                  whileHover={{ y: -9, scale: 1.02 }}
+                  className="group rounded-2xl border border-[#D7E6F8] bg-white p-6 shadow-sm transition duration-300 hover:border-[#2563EB] hover:shadow-xl hover:shadow-[#2563EB]/10 dark:border-[#263D60] dark:bg-[#142B4A]"
                 >
-                  <div className="flex h-13 w-13 items-center justify-center rounded-xl bg-[#DBEAFE] text-[#2563EB] transition group-hover:bg-[#2563EB] group-hover:text-white">
+                  <motion.div
+                    whileHover={{ rotate: 8, scale: 1.12 }}
+                    className="flex h-13 w-13 items-center justify-center rounded-xl bg-[#DBEAFE] text-[#2563EB] transition group-hover:bg-[#2563EB] group-hover:text-white"
+                  >
                     <Icon size={24} />
-                  </div>
+                  </motion.div>
 
                   <h3 className="mt-6 text-base font-extrabold text-[#142B4A] dark:text-white">
                     {feature.title}
@@ -175,6 +232,11 @@ export default function Home() {
                   <p className="mt-3 text-sm leading-6 text-[#58708F] dark:text-[#A9BEDA]">
                     {feature.description}
                   </p>
+
+                  <div className="mt-5 flex items-center gap-2 text-xs font-bold text-[#2563EB]">
+                    <span>Explore capability</span>
+                    <ArrowRight size={14} />
+                  </div>
                 </motion.div>
               );
             })}
@@ -182,9 +244,267 @@ export default function Home() {
         </div>
       </section>
 
-      {/* DOCUMENT WORKSPACE */}
-      <section id="upload" className="scroll-mt-24">
-        <DocumentWorkspace />
+      {/* ANIMATED AI INTELLIGENCE SHOWCASE */}
+      <section
+        id="ai-intelligence"
+        className="relative scroll-mt-24 overflow-hidden border-t border-[#D7E6F8] bg-white py-20 dark:border-[#263D60] dark:bg-[#0B1930] md:py-28"
+      >
+        <div className="pointer-events-none absolute -left-40 top-20 h-80 w-80 rounded-full bg-[#2563EB]/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-40 bottom-10 h-96 w-96 rounded-full bg-[#818CF8]/10 blur-3xl" />
+
+        <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-6 lg:grid-cols-2">
+
+          {/* LEFT CONTENT */}
+          <motion.div
+            initial={{ opacity: 0, x: -35 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+          >
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#D7E6F8] bg-[#EFF6FF] px-4 py-2 text-sm font-bold text-[#2563EB] dark:border-[#263D60] dark:bg-[#142B4A]">
+              <BrainCircuit size={17} />
+              AI DOCUMENT INTELLIGENCE
+            </span>
+
+            <h2 className="mt-7 text-3xl font-extrabold leading-tight tracking-tight text-[#142B4A] dark:text-white md:text-5xl">
+              Your Documents.
+              <span className="block text-[#2563EB]">
+                More Intelligent.
+              </span>
+            </h2>
+
+            <p className="mt-6 max-w-xl text-base leading-8 text-[#58708F] dark:text-[#A9BEDA]">
+              Business documents contain important information that
+              is easy to overlook. Duego helps turn that information
+              into useful insights, obligations and important dates.
+            </p>
+
+            <div className="mt-8 space-y-5">
+              {[
+                "Identify important document information",
+                "Highlight potential risks and obligations",
+                "Recognize dates and business responsibilities",
+                "Keep important information organized",
+              ].map((item, index) => (
+                <motion.div
+                  key={item}
+                  initial={{ opacity: 0, x: -15 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.12 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#DBEAFE] text-[#2563EB] dark:bg-[#203D65]">
+                    <CheckCircle2 size={17} />
+                  </div>
+
+                  <span className="text-sm font-semibold text-[#142B4A] dark:text-[#DBEAFE]">
+                    {item}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+
+            <Link
+              href="/register"
+              className="mt-10 inline-flex items-center gap-2 rounded-xl bg-[#142B4A] px-6 py-3.5 text-sm font-bold !text-white shadow-lg transition hover:-translate-y-1 hover:bg-[#2563EB]"
+            >
+              Explore Duego
+              <ArrowRight size={18} />
+            </Link>
+          </motion.div>
+
+          {/* RIGHT ANIMATED VISUAL */}
+          <div className="relative mx-auto w-full max-w-xl">
+
+            {/* BACKGROUND DECORATION */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 55,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-[#93C5FD]/60"
+            />
+
+            <motion.div
+              animate={{ rotate: -360 }}
+              transition={{
+                duration: 75,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              className="absolute left-1/2 top-1/2 h-[340px] w-[340px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#DBEAFE] dark:border-[#263D60]"
+            />
+
+            {/* MAIN ANALYSIS PANEL */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 25 }}
+              whileInView={{ opacity: 1, scale: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+              className="relative z-10 rounded-3xl border border-[#D7E6F8] bg-white p-5 shadow-2xl shadow-[#2563EB]/10 dark:border-[#35547B] dark:bg-[#142B4A] sm:p-7"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#2563EB] text-white">
+                    <BrainCircuit size={23} />
+                  </div>
+
+                  <div>
+                    <h3 className="font-extrabold text-[#142B4A] dark:text-white">
+                      AI Intelligence
+                    </h3>
+                    <p className="text-xs text-[#58708F] dark:text-[#A9BEDA]">
+                      Document insights preview
+                    </p>
+                  </div>
+                </div>
+
+                <span className="rounded-full bg-[#DCFCE7] px-3 py-1.5 text-xs font-bold text-[#166534]">
+                  <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-[#16A34A]" />
+                  Preview
+                </span>
+              </div>
+
+              {/* DOCUMENT PREVIEW */}
+              <motion.div
+                animate={{ y: [0, -5, 0] }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="mt-7 rounded-2xl border border-[#D7E6F8] bg-[#EFF6FF] p-4 dark:border-[#35547B] dark:bg-[#203D65]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#2563EB] shadow-sm dark:bg-[#142B4A]">
+                    <FileText size={25} />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-[#142B4A] dark:text-white">
+                      Business_Agreement.pdf
+                    </p>
+                    <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
+                      Example document preview
+                    </p>
+                  </div>
+
+                  <FileCheck size={21} className="text-[#2563EB]" />
+                </div>
+
+                <div className="mt-5 space-y-2.5">
+                  <div className="h-2 w-full rounded-full bg-[#DBEAFE] dark:bg-[#35547B]" />
+                  <div className="h-2 w-5/6 rounded-full bg-[#DBEAFE] dark:bg-[#35547B]" />
+                  <div className="h-2 w-4/6 rounded-full bg-[#DBEAFE] dark:bg-[#35547B]" />
+                  <div className="h-2 w-3/4 rounded-full bg-[#DBEAFE] dark:bg-[#35547B]" />
+                </div>
+              </motion.div>
+
+              {/* ANALYSIS PROGRESS */}
+              <div className="mt-6 flex items-center justify-between">
+                <p className="text-sm font-bold text-[#142B4A] dark:text-white">
+                  Intelligence overview
+                </p>
+                <Sparkles size={17} className="text-[#D6A84B]" />
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {analysisItems.map((item, index) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <motion.div
+                      key={item.label}
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.25 + index * 0.15 }}
+                      className="flex items-center gap-3 rounded-xl border border-[#D7E6F8] bg-white p-3 dark:border-[#35547B] dark:bg-[#102440]"
+                    >
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${item.background} ${item.color}`}>
+                        <Icon size={19} />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-[#142B4A] dark:text-white">
+                          {item.label}
+                        </p>
+                        <p className="mt-0.5 text-xs text-[#58708F] dark:text-[#A9BEDA]">
+                          {item.detail}
+                        </p>
+                      </div>
+
+                      <CheckCircle2 size={18} className="shrink-0 text-[#2563EB]" />
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 flex items-center gap-2 rounded-xl bg-[#EFF6FF] p-3 text-xs font-semibold text-[#2563EB] dark:bg-[#203D65] dark:text-[#DBEAFE]">
+                <Activity size={16} />
+                Example of Duego&apos;s document intelligence experience
+              </div>
+            </motion.div>
+
+            {/* FLOATING DEADLINE CARD */}
+            <motion.div
+              animate={{ y: [0, -12, 0], rotate: [0, 1.5, 0] }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="absolute -left-5 top-16 z-20 hidden w-48 rounded-2xl border border-[#D7E6F8] bg-white p-4 shadow-xl dark:border-[#35547B] dark:bg-[#203D65] sm:block"
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#DBEAFE] text-[#2563EB]">
+                  <Clock3 size={19} />
+                </div>
+                <span className="text-xs font-bold text-[#142B4A] dark:text-white">
+                  Deadline alert
+                </span>
+              </div>
+
+              <p className="mt-3 text-sm font-extrabold text-[#142B4A] dark:text-white">
+                Important date
+              </p>
+              <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
+                Stay ahead of responsibilities
+              </p>
+            </motion.div>
+
+            {/* FLOATING RISK CARD */}
+            <motion.div
+              animate={{ y: [0, 10, 0], rotate: [0, -1.5, 0] }}
+              transition={{
+                duration: 4.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="absolute -right-5 bottom-14 z-20 hidden w-48 rounded-2xl border border-[#D7E6F8] bg-white p-4 shadow-xl dark:border-[#35547B] dark:bg-[#203D65] sm:block"
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FEF3C7] text-[#B7791F]">
+                  <AlertTriangle size={19} />
+                </div>
+                <span className="text-xs font-bold text-[#142B4A] dark:text-white">
+                  Risk awareness
+                </span>
+              </div>
+
+              <p className="mt-3 text-sm font-extrabold text-[#142B4A] dark:text-white">
+                Review important terms
+              </p>
+              <p className="mt-1 text-xs text-[#58708F] dark:text-[#A9BEDA]">
+                Identify potential concerns
+              </p>
+            </motion.div>
+
+          </div>
+        </div>
       </section>
 
       {/* DEADLINES */}
@@ -195,7 +515,7 @@ export default function Home() {
       {/* HOW IT WORKS */}
       <section
         id="how-it-works"
-        className="border-t border-[#D7E6F8] bg-white py-20 dark:border-[#263D60] dark:bg-[#0B1930] md:py-24"
+        className="scroll-mt-24 border-t border-[#D7E6F8] bg-white py-20 dark:border-[#263D60] dark:bg-[#0B1930] md:py-24"
       >
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-2xl text-center">
@@ -221,10 +541,11 @@ export default function Home() {
             {steps.map((step, index) => (
               <motion.div
                 key={step.number}
-                initial={{ opacity: 0, y: 18 }}
+                initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.12 }}
+                transition={{ delay: index * 0.12, duration: 0.5 }}
+                whileHover={{ y: -7 }}
                 className="relative rounded-2xl border border-[#D7E6F8] bg-[#EFF6FF] p-6 dark:border-[#263D60] dark:bg-[#142B4A]"
               >
                 <div className="flex items-center justify-between">
@@ -293,7 +614,10 @@ export default function Home() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-[#142B4A] p-6 text-white shadow-lg sm:translate-y-6">
+            <motion.div
+              whileHover={{ y: -8 }}
+              className="rounded-2xl bg-[#142B4A] p-6 text-white shadow-lg sm:translate-y-6"
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#2563EB]">
                 <FileText size={24} />
               </div>
@@ -301,9 +625,12 @@ export default function Home() {
               <p className="mt-2 text-sm leading-6 text-[#DBEAFE]">
                 Organize important business files and information.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="rounded-2xl border border-[#D7E6F8] bg-white p-6 dark:border-[#263D60] dark:bg-[#142B4A]">
+            <motion.div
+              whileHover={{ y: -8 }}
+              className="rounded-2xl border border-[#D7E6F8] bg-white p-6 dark:border-[#263D60] dark:bg-[#142B4A]"
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#DBEAFE] text-[#2563EB]">
                 <CalendarCheck size={24} />
               </div>
@@ -313,9 +640,12 @@ export default function Home() {
               <p className="mt-2 text-sm leading-6 text-[#58708F] dark:text-[#A9BEDA]">
                 Monitor important dates and responsibilities.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="rounded-2xl border border-[#D7E6F8] bg-white p-6 dark:border-[#263D60] dark:bg-[#142B4A]">
+            <motion.div
+              whileHover={{ y: -8 }}
+              className="rounded-2xl border border-[#D7E6F8] bg-white p-6 dark:border-[#263D60] dark:bg-[#142B4A]"
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#DBEAFE] text-[#2563EB]">
                 <Wallet size={24} />
               </div>
@@ -325,9 +655,12 @@ export default function Home() {
               <p className="mt-2 text-sm leading-6 text-[#58708F] dark:text-[#A9BEDA]">
                 Track business payment responsibilities.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="rounded-2xl bg-[#2563EB] p-6 text-white shadow-lg sm:translate-y-6">
+            <motion.div
+              whileHover={{ y: -8 }}
+              className="rounded-2xl bg-[#2563EB] p-6 text-white shadow-lg sm:translate-y-6"
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#142B4A]">
                 <Crown size={24} />
               </div>
@@ -335,7 +668,7 @@ export default function Home() {
               <p className="mt-2 text-sm leading-6 text-[#DBEAFE]">
                 Understand important information through AI analysis.
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -348,10 +681,17 @@ export default function Home() {
       {/* FINAL CALL TO ACTION */}
       <section className="border-t border-[#D7E6F8] bg-white px-6 py-20 dark:border-[#263D60] dark:bg-[#0B1930] md:py-24">
         <div className="mx-auto max-w-5xl rounded-3xl bg-[#142B4A] px-6 py-16 text-center text-white shadow-2xl sm:px-12 md:py-20">
-
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2563EB]">
+          <motion.div
+            animate={{ y: [0, -7, 0], rotate: [0, 5, 0] }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2563EB]"
+          >
             <Sparkles size={28} className="text-white" />
-          </div>
+          </motion.div>
 
           <h2 className="mx-auto mt-7 max-w-3xl text-3xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
             Make Every Business Document Count.
@@ -363,8 +703,6 @@ export default function Home() {
           </p>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
-
-            {/* GET STARTED — FORCED NAVY TEXT */}
             <Link
               href="/register"
               style={{
@@ -374,30 +712,13 @@ export default function Home() {
               }}
               className="inline-flex items-center justify-center gap-2 rounded-xl px-7 py-4 text-sm font-extrabold !text-[#142B4A] transition-all hover:-translate-y-1 hover:shadow-xl"
             >
-              <span
-                style={{ color: "#142B4A" }}
-                className="!text-[#142B4A]"
-              >
-                Get Started with Duego
-              </span>
-
-              <ArrowRight
-                size={18}
-                style={{ color: "#142B4A" }}
-                className="!text-[#142B4A]"
-              />
+              Get Started with Duego
+              <ArrowRight size={18} />
             </Link>
 
-            {/* LOGIN — WHITE TEXT ON NAVY */}
             <Link
               href="/login"
-              style={{
-                backgroundColor: "transparent",
-                color: "#FFFFFF",
-                border: "1px solid #93C5FD",
-                textDecoration: "none",
-              }}
-              className="inline-flex items-center justify-center rounded-xl px-7 py-4 text-sm font-bold !text-white transition hover:bg-[#2563EB]"
+              className="inline-flex items-center justify-center rounded-xl border border-[#93C5FD] px-7 py-4 text-sm font-bold !text-white transition hover:bg-[#2563EB]"
             >
               Already a Member? Log In
             </Link>
@@ -422,11 +743,21 @@ export default function Home() {
           </div>
 
           <div className="flex flex-wrap gap-6 text-sm font-semibold text-[#58708F] dark:text-[#A9BEDA]">
-            <a href="#features" className="transition hover:text-[#2563EB]">Features</a>
-            <a href="#upload" className="transition hover:text-[#2563EB]">AI Analysis</a>
-            <a href="#deadlines" className="transition hover:text-[#2563EB]">Deadlines</a>
-            <a href="#pricing" className="transition hover:text-[#2563EB]">Pricing</a>
-            <Link href="/login" className="transition hover:text-[#2563EB]">Login</Link>
+            <a href="#features" className="transition hover:text-[#2563EB]">
+              Features
+            </a>
+            <a href="#ai-intelligence" className="transition hover:text-[#2563EB]">
+              AI Intelligence
+            </a>
+            <a href="#deadlines" className="transition hover:text-[#2563EB]">
+              Deadlines
+            </a>
+            <a href="#pricing" className="transition hover:text-[#2563EB]">
+              Pricing
+            </a>
+            <Link href="/login" className="transition hover:text-[#2563EB]">
+              Login
+            </Link>
           </div>
 
           <p className="text-sm text-[#58708F] dark:text-[#A9BEDA]">

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -20,7 +19,23 @@ import {
   ClipboardList,
   ShieldCheck,
   RefreshCw,
+  LockKeyhole,
+  Crown,
+  Zap,
+  Gem,
+  FileText,
+  CircleAlert,
 } from "lucide-react";
+
+import {
+  hasFeatureAccess,
+  PLAN_DETAILS,
+  type PlanType,
+} from "@/lib/subscription/feature-config";
+
+// DEMONSTRATION PLAN
+// Later, this will come from the authenticated user's backend subscription.
+const currentPlan: PlanType = "free";
 
 type ObligationStatus = "Pending" | "Completed" | "Overdue";
 type ObligationPriority = "High" | "Medium" | "Low";
@@ -148,7 +163,71 @@ const secondaryButton =
   "inline-flex items-center justify-center gap-2 rounded-xl border border-[#C7DDF5] bg-white px-4 py-3 text-sm font-semibold !text-[#142B4A] transition hover:bg-[#DBEAFE] dark:border-[#345477] dark:bg-[#17365E] dark:!text-white dark:hover:bg-[#244D7D]";
 
 const inputStyle =
-  "h-11 rounded-xl border border-[#C7DDF5] bg-[#F5F9FF] px-3 text-sm font-medium text-[#142B4A] outline-none transition focus:border-blue-500 dark:border-[#345477] dark:bg-[#102749] dark:text-white";
+  "h-11 w-full rounded-xl border border-[#C7DDF5] bg-[#F5F9FF] px-3 text-sm font-medium text-[#142B4A] outline-none transition focus:border-blue-500 dark:border-[#345477] dark:bg-[#102749] dark:text-white";
+
+const planIcons: Record<PlanType, typeof Zap> = {
+  free: Zap,
+  pro: Crown,
+  business: Gem,
+};
+
+function PlanBadge({ plan }: { plan: PlanType }) {
+  const Icon = planIcons[plan];
+  const details = PLAN_DETAILS[plan];
+
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold"
+      style={{
+        color: details.color,
+        borderColor: `${details.color}55`,
+        backgroundColor: `${details.color}12`,
+      }}
+    >
+      <Icon size={13} />
+      {details.name}
+    </span>
+  );
+}
+
+function FeatureLock() {
+  if (hasFeatureAccess(currentPlan, "advanced-obligations")) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-2xl border border-[#D6A84B]/40 bg-[#FFFBF0] p-5 dark:border-[#69532D] dark:bg-[#302817]">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-[#F9E8B7] p-3 text-[#142B4A]">
+            <LockKeyhole size={22} />
+          </div>
+
+          <div>
+            <h3 className="font-bold text-[#142B4A] dark:text-[#FFF2CE]">
+              Advanced Obligation Management
+            </h3>
+            <p className="mt-1 text-xs leading-6 text-[#58708F] dark:text-[#E5D3A9]">
+              Unlock enhanced obligation management tools with the Business
+              plan.
+            </p>
+            <div className="mt-3">
+              <PlanBadge plan="business" />
+            </div>
+          </div>
+        </div>
+
+        <Link
+          href="/subscription"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#D6A84B] px-5 py-3 text-sm font-bold text-[#142B4A] transition hover:bg-[#E5BC69]"
+        >
+          Upgrade Plan
+          <ArrowUpRight size={16} />
+        </Link>
+      </div>
+    </section>
+  );
+}
 
 export default function ObligationsPage() {
   const [obligations, setObligations] = useState(initialObligations);
@@ -158,6 +237,17 @@ export default function ObligationsPage() {
   const [selectedObligation, setSelectedObligation] =
     useState<Obligation | null>(null);
   const [notice, setNotice] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    category: "Payment",
+    amount: "",
+    dueDate: "",
+    priority: "Medium" as ObligationPriority,
+    source: "",
+  });
 
   const filteredObligations = useMemo(() => {
     return obligations.filter((item) => {
@@ -192,21 +282,59 @@ export default function ObligationsPage() {
     .filter((item) => item.status !== "Completed")
     .reduce((total, item) => total + item.amount, 0);
 
-  function markCompleted(id: number) {
+  const upcomingObligations = obligations
+    .filter((item) => item.status === "Pending")
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    .slice(0, 3);
+
+  function updateStatus(id: number, status: ObligationStatus) {
     setObligations((current) =>
       current.map((item) =>
-        item.id === id ? { ...item, status: "Completed" } : item
+        item.id === id ? { ...item, status } : item
       )
     );
 
     setSelectedObligation(null);
-    setNotice("Obligation marked as completed in this preview.");
+    setNotice(`Obligation marked as ${status.toLowerCase()} in this preview.`);
   }
 
   function resetFilters() {
     setSearch("");
     setStatusFilter("All");
     setCategoryFilter("All");
+  }
+
+  function resetForm() {
+    setFormData({
+      title: "",
+      description: "",
+      category: "Payment",
+      amount: "",
+      dueDate: "",
+      priority: "Medium",
+      source: "",
+    });
+  }
+
+  function addObligation(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const newObligation: Obligation = {
+      id: Date.now(),
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      category: formData.category,
+      amount: Number(formData.amount) || 0,
+      dueDate: formData.dueDate,
+      priority: formData.priority,
+      status: "Pending",
+      source: formData.source.trim() || "Manually added",
+    };
+
+    setObligations((current) => [newObligation, ...current]);
+    setShowAddForm(false);
+    resetForm();
+    setNotice("New obligation added to this local preview.");
   }
 
   return (
@@ -229,18 +357,18 @@ export default function ObligationsPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            setNotice(
-              "Manual obligation creation is planned for a future phase. This preview does not save new records."
-            )
-          }
-          className={primaryButton}
-        >
-          <Plus size={18} className="text-white" />
-          <span className="text-white">Add Obligation</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <PlanBadge plan={currentPlan} />
+
+          <button
+            type="button"
+            onClick={() => setShowAddForm(true)}
+            className={primaryButton}
+          >
+            <Plus size={18} className="text-white" />
+            <span>Add Obligation</span>
+          </button>
+        </div>
       </section>
 
       {/* PREVIEW NOTICE */}
@@ -250,12 +378,11 @@ export default function ObligationsPage() {
         </div>
 
         <div>
-          <p className={`text-sm font-bold ${heading}`}>
-            Preview Mode
-          </p>
+          <p className={`text-sm font-bold ${heading}`}>Preview Mode</p>
           <p className={`mt-1 text-xs leading-6 ${secondary}`}>
-            These are demonstration obligations, not records retrieved from
-            your backend. Status changes are temporary and will not be saved.
+            These are demonstration obligations. New records and status
+            changes are held in local page state and are not saved to your
+            backend.
           </p>
         </div>
       </div>
@@ -279,9 +406,7 @@ export default function ObligationsPage() {
       {/* SUMMARY CARDS */}
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className={`font-bold ${heading}`}>
-            Obligations Overview
-          </h2>
+          <h2 className={`font-bold ${heading}`}>Obligations Overview</h2>
           <span className={`text-xs ${secondary}`}>Sample figures</span>
         </div>
 
@@ -376,6 +501,9 @@ export default function ObligationsPage() {
         </div>
       </section>
 
+      {/* ADVANCED BUSINESS FEATURE */}
+      <FeatureLock />
+
       {/* FILTERS AND OBLIGATION LIST */}
       <section className={`${panel} overflow-hidden shadow-sm`}>
         <div className="border-b border-[#D7E6F8] p-5 dark:border-[#263D60]">
@@ -433,7 +561,7 @@ export default function ObligationsPage() {
                 onClick={resetFilters}
                 className={secondaryButton}
               >
-                <RefreshCw size={16} className="text-[#142B4A] dark:text-white" />
+                <RefreshCw size={16} />
                 <span>Reset</span>
               </button>
             </div>
@@ -557,37 +685,236 @@ export default function ObligationsPage() {
         </div>
 
         <div className="space-y-3">
-          {obligations
-            .filter((item) => item.status === "Pending")
-            .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-            .slice(0, 3)
-            .map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col justify-between gap-3 rounded-xl border border-[#D7E6F8] bg-[#F5F9FF] p-4 sm:flex-row sm:items-center dark:border-[#263D60] dark:bg-[#102749]"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-amber-100 p-2.5 text-amber-700 dark:bg-amber-950 dark:text-amber-200">
-                    <CalendarDays size={19} />
-                  </div>
-
-                  <div>
-                    <p className={`text-sm font-bold ${heading}`}>
-                      {item.title}
-                    </p>
-                    <p className={`mt-1 text-xs ${secondary}`}>
-                      {item.category}
-                    </p>
-                  </div>
+          {upcomingObligations.map((item) => (
+            <div
+              key={item.id}
+              className="flex flex-col justify-between gap-3 rounded-xl border border-[#D7E6F8] bg-[#F5F9FF] p-4 sm:flex-row sm:items-center dark:border-[#263D60] dark:bg-[#102749]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-amber-100 p-2.5 text-amber-700 dark:bg-amber-950 dark:text-amber-200">
+                  <CalendarDays size={19} />
                 </div>
 
-                <span className="rounded-lg bg-blue-100 px-3 py-2 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200">
-                  {formatDate(item.dueDate)}
-                </span>
+                <div>
+                  <p className={`text-sm font-bold ${heading}`}>
+                    {item.title}
+                  </p>
+                  <p className={`mt-1 text-xs ${secondary}`}>
+                    {item.category}
+                  </p>
+                </div>
               </div>
-            ))}
+
+              <span className="rounded-lg bg-blue-100 px-3 py-2 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                {formatDate(item.dueDate)}
+              </span>
+            </div>
+          ))}
+
+          {upcomingObligations.length === 0 && (
+            <p className={`py-5 text-center text-sm ${secondary}`}>
+              No pending responsibilities in this preview.
+            </p>
+          )}
         </div>
       </section>
+
+      {/* ADD OBLIGATION MODAL */}
+      {showAddForm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#07162B]/75 p-4 backdrop-blur-sm"
+          onClick={() => setShowAddForm(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-obligation-title"
+            className="my-auto w-full max-w-xl overflow-hidden rounded-2xl border border-[#C7DDF5] bg-white shadow-2xl dark:border-[#345477] dark:bg-[#0B1730]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 bg-[#142B4A] p-5 text-white">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-white/15 bg-white/10 p-3">
+                  <Plus size={22} className="text-blue-200" />
+                </div>
+
+                <div>
+                  <h2 id="add-obligation-title" className="font-bold text-white">
+                    Add New Obligation
+                  </h2>
+                  <p className="mt-1 text-xs text-blue-100">
+                    Create a demonstration obligation
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                aria-label="Close form"
+                className="rounded-lg p-2 text-white transition hover:bg-white/15"
+              >
+                <X size={19} />
+              </button>
+            </div>
+
+            <form onSubmit={addObligation} className="space-y-4 p-5 sm:p-6">
+              <div>
+                <label className={`mb-1.5 block text-xs font-semibold ${heading}`}>
+                  Obligation title *
+                </label>
+                <input
+                  required
+                  maxLength={100}
+                  value={formData.title}
+                  onChange={(event) =>
+                    setFormData({ ...formData, title: event.target.value })
+                  }
+                  placeholder="e.g. Monthly GST Payment"
+                  className={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label className={`mb-1.5 block text-xs font-semibold ${heading}`}>
+                  Description *
+                </label>
+                <textarea
+                  required
+                  maxLength={300}
+                  value={formData.description}
+                  onChange={(event) =>
+                    setFormData({
+                      ...formData,
+                      description: event.target.value,
+                    })
+                  }
+                  placeholder="Describe the business responsibility..."
+                  rows={3}
+                  className={`${inputStyle} h-auto py-3`}
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={`mb-1.5 block text-xs font-semibold ${heading}`}>
+                    Category
+                  </label>
+                  <select
+                    value={formData.category}
+                    onChange={(event) =>
+                      setFormData({
+                        ...formData,
+                        category: event.target.value,
+                      })
+                    }
+                    className={inputStyle}
+                  >
+                    <option value="Payment">Payment</option>
+                    <option value="Tax">Tax</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Compliance">Compliance</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`mb-1.5 block text-xs font-semibold ${heading}`}>
+                    Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.amount}
+                    onChange={(event) =>
+                      setFormData({ ...formData, amount: event.target.value })
+                    }
+                    placeholder="0"
+                    className={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label className={`mb-1.5 block text-xs font-semibold ${heading}`}>
+                    Due date *
+                  </label>
+                  <input
+                    required
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={(event) =>
+                      setFormData({ ...formData, dueDate: event.target.value })
+                    }
+                    className={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label className={`mb-1.5 block text-xs font-semibold ${heading}`}>
+                    Priority
+                  </label>
+                  <select
+                    value={formData.priority}
+                    onChange={(event) =>
+                      setFormData({
+                        ...formData,
+                        priority: event.target.value as ObligationPriority,
+                      })
+                    }
+                    className={inputStyle}
+                  >
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className={`mb-1.5 block text-xs font-semibold ${heading}`}>
+                  Source document (optional)
+                </label>
+                <input
+                  value={formData.source}
+                  onChange={(event) =>
+                    setFormData({ ...formData, source: event.target.value })
+                  }
+                  placeholder="e.g. GST Invoice.pdf"
+                  className={inputStyle}
+                />
+              </div>
+
+              <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-[#EFF6FF] p-3 dark:border-blue-900 dark:bg-[#102749]">
+                <CircleAlert size={17} className="mt-0.5 shrink-0 text-blue-600" />
+                <p className={`text-xs leading-5 ${secondary}`}>
+                  This record will only be added to the current page preview.
+                  Backend saving will be integrated later.
+                </p>
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    resetForm();
+                  }}
+                  className={secondaryButton}
+                >
+                  Cancel
+                </button>
+
+                <button type="submit" className={primaryButton}>
+                  <Plus size={17} className="text-white" />
+                  <span>Add Obligation</span>
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
       {/* OBLIGATION DETAILS MODAL */}
       {selectedObligation && (
@@ -604,7 +931,6 @@ export default function ObligationsPage() {
             className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#C7DDF5] bg-white shadow-2xl dark:border-[#345477] dark:bg-[#0B1730]"
             onClick={(event) => event.stopPropagation()}
           >
-            {/* MODAL HEADER */}
             <div className="flex items-start justify-between gap-3 bg-[#142B4A] p-5 text-white">
               <div className="flex items-center gap-3">
                 <div className="rounded-xl border border-white/15 bg-white/10 p-3">
@@ -635,7 +961,6 @@ export default function ObligationsPage() {
             </div>
 
             <div className="space-y-5 p-5 sm:p-6">
-              {/* TITLE */}
               <div>
                 <p className={`text-xs font-medium ${secondary}`}>
                   Obligation name
@@ -648,7 +973,6 @@ export default function ObligationsPage() {
                 </p>
               </div>
 
-              {/* STATUS */}
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusStyles[selectedObligation.status]}`}
@@ -656,20 +980,15 @@ export default function ObligationsPage() {
                   {selectedObligation.status}
                 </span>
 
-                <span
-                  className={`rounded-full bg-blue-100 px-3 py-1.5 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200`}
-                >
+                <span className="rounded-full bg-blue-100 px-3 py-1.5 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200">
                   {selectedObligation.category}
                 </span>
 
-                <span
-                  className={`rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-200`}
-                >
+                <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-200">
                   {selectedObligation.priority} priority
                 </span>
               </div>
 
-              {/* DETAILS GRID */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-blue-200 bg-[#EFF6FF] p-4 dark:border-[#345477] dark:bg-[#102749]">
                   <Wallet size={19} className="text-blue-600" />
@@ -690,29 +1009,56 @@ export default function ObligationsPage() {
                 </div>
               </div>
 
-              {/* SOURCE */}
               <div className="rounded-xl border border-[#D7E6F8] bg-[#F5F9FF] p-4 dark:border-[#263D60] dark:bg-[#102749]">
                 <p className={`text-xs font-semibold ${secondary}`}>
                   Source Document
                 </p>
                 <div className="mt-2 flex items-center gap-2">
-                  <FileCheck size={18} className="shrink-0 text-blue-600" />
+                  <FileText size={18} className="shrink-0 text-blue-600" />
                   <p className={`break-all text-sm font-semibold ${heading}`}>
                     {selectedObligation.source}
                   </p>
                 </div>
               </div>
 
-              {/* ACTIONS */}
-              <div className="flex flex-col-reverse gap-3 sm:flex-row">
+              <div className="flex flex-col gap-3">
                 {selectedObligation.status !== "Completed" && (
                   <button
                     type="button"
-                    onClick={() => markCompleted(selectedObligation.id)}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
+                    onClick={() =>
+                      updateStatus(selectedObligation.id, "Completed")
+                    }
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
                   >
                     <CheckCircle2 size={17} />
                     <span>Mark Completed</span>
+                  </button>
+                )}
+
+                {selectedObligation.status !== "Overdue" &&
+                  selectedObligation.status !== "Completed" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateStatus(selectedObligation.id, "Overdue")
+                      }
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200"
+                    >
+                      <AlertTriangle size={17} />
+                      <span>Mark Overdue</span>
+                    </button>
+                  )}
+
+                {selectedObligation.status !== "Pending" && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateStatus(selectedObligation.id, "Pending")
+                    }
+                    className={secondaryButton}
+                  >
+                    <Clock3 size={17} />
+                    <span>Move to Pending</span>
                   </button>
                 )}
 
