@@ -1,6 +1,9 @@
 
 @import "tailwindcss";
 
+/* Tell Tailwind v4 to use the .dark class for dark: utilities */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* =========================================
    DUEGO DESIGN SYSTEM
    Navy Blue + Royal Blue + Gold
@@ -66,10 +69,7 @@
   --gold: #f5d58a;
 }
 
-/* =========================================
-   TAILWIND V4 THEME TOKENS
-   ========================================= */
-
+/* TAILWIND V4 THEME TOKENS */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -101,10 +101,7 @@
   --radius-card: var(--radius);
 }
 
-/* =========================================
-   GLOBAL BASE STYLING
-   ========================================= */
-
+/* GLOBAL BASE STYLING */
 * {
   box-sizing: border-box;
 }
@@ -119,16 +116,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-
-  transition:
-    background-color 200ms ease,
-    color 200ms ease;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
-/* =========================================
-   FORM ELEMENTS
-   ========================================= */
-
+/* FORM ELEMENTS */
 button,
 input,
 textarea,
@@ -156,24 +147,13 @@ textarea::placeholder {
   opacity: 0.85;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-/* =========================================
-   ACCESSIBILITY
-   ========================================= */
-
+/* ACCESSIBILITY */
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 3px;
 }
 
-/* =========================================
-   TEXT SELECTION
-   ========================================= */
-
+/* TEXT SELECTION */
 ::selection {
   background: #bfdbfe;
   color: #142b4a;
@@ -184,10 +164,7 @@ a {
   color: #ffffff;
 }
 
-/* =========================================
-   SCROLLBAR
-   ========================================= */
-
+/* SCROLLBAR */
 * {
   scrollbar-width: thin;
   scrollbar-color: #93c5fd transparent;

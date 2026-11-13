@@ -4,6 +4,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "motion/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 import {
@@ -22,6 +23,8 @@ import {
   FileCheck,
   Sparkles,
   Building2,
+  Receipt,
+  Crown,
 } from "lucide-react";
 
 const navigation = [
@@ -42,7 +45,28 @@ const navigation = [
       { label: "Reminders", href: "/reminders", icon: Bell },
     ],
   },
+  {
+    title: "BILLING & PLANS",
+    items: [
+      { label: "Subscription", href: "/subscription", icon: Crown },
+      { label: "Billing History", href: "/billing-history", icon: Receipt },
+    ],
+  },
 ];
+
+const pageTitles: Record<string, string> = {
+  "/dashboard": "Dashboard",
+  "/documents": "Documents",
+  "/analysis": "AI Analysis",
+  "/obligations": "Obligations",
+  "/payments": "Payments",
+  "/business-payments": "Business Payments",
+  "/subscription": "Subscription Plans",
+  "/billing-history": "Billing History",
+  "/deadlines": "Deadlines",
+  "/reminders": "Reminders",
+  "/settings": "Settings",
+};
 
 type SidebarProps = {
   collapsed: boolean;
@@ -63,16 +87,19 @@ function SidebarContent({
 
   return (
     <>
-      {/* Brand */}
+      {/* BRAND */}
       <div className="flex h-20 shrink-0 items-center justify-between border-b border-[#263D60] px-5">
         <Link
           href="/dashboard"
           onClick={onNavigate}
           className="flex min-w-0 items-center gap-3"
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#2563EB] text-xl font-extrabold text-white shadow-lg shadow-[#2563EB]/25">
+          <motion.div
+            whileHover={{ rotate: 8, scale: 1.08 }}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#2563EB] text-xl font-extrabold text-white shadow-lg shadow-[#2563EB]/25"
+          >
             D
-          </div>
+          </motion.div>
 
           {!collapsed && (
             <div className="min-w-0">
@@ -91,14 +118,14 @@ function SidebarContent({
             type="button"
             onClick={onClose}
             aria-label="Close navigation"
-            className="rounded-xl p-2 text-[#BFDBFE] transition hover:bg-[#1E3A5F] hover:text-white lg:hidden"
+            className="rounded-xl p-2 text-[#BFDBFE] transition hover:bg-[#1E3A5F] hover:text-white"
           >
             <X size={20} />
           </button>
         )}
       </div>
 
-      {/* Navigation */}
+      {/* NAVIGATION */}
       <div className="flex-1 overflow-y-auto px-3 py-7">
         {navigation.map((group) => (
           <div key={group.title} className="mb-8">
@@ -114,37 +141,52 @@ function SidebarContent({
                 const active = isActive(item.href);
 
                 return (
-                  <Link
+                  <motion.div
                     key={item.href}
-                    href={item.href}
-                    title={collapsed ? item.label : undefined}
-                    onClick={onNavigate}
-                    aria-current={active ? "page" : undefined}
-                    className={`group relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-200 ${
-                      active
-                        ? "bg-[#2563EB] text-white shadow-lg shadow-[#2563EB]/20"
-                        : "text-[#BFDBFE] hover:bg-[#1E3A5F] hover:text-white"
-                    } ${collapsed ? "justify-center" : ""}`}
+                    whileHover={{ x: collapsed ? 0 : 4 }}
+                    transition={{ duration: 0.18 }}
                   >
-                    {active && (
-                      <span className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-[#D6A84B]" />
-                    )}
+                    <Link
+                      href={item.href}
+                      title={collapsed ? item.label : undefined}
+                      onClick={onNavigate}
+                      aria-current={active ? "page" : undefined}
+                      className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-200 ${
+                        active
+                          ? "bg-[#2563EB] text-white shadow-lg shadow-[#2563EB]/20"
+                          : "text-[#BFDBFE] hover:bg-[#1E3A5F] hover:text-white"
+                      } ${collapsed ? "justify-center" : ""}`}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId="active-navigation-indicator"
+                          className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-[#D6A84B]"
+                          transition={{
+                            type: "spring",
+                            stiffness: 350,
+                            damping: 30,
+                          }}
+                        />
+                      )}
 
-                    <Icon
-                      size={19}
-                      strokeWidth={active ? 2.5 : 2}
-                      className="shrink-0"
-                    />
+                      <Icon
+                        size={19}
+                        strokeWidth={active ? 2.5 : 2}
+                        className="relative z-10 shrink-0"
+                      />
 
-                    {!collapsed && <span>{item.label}</span>}
-                  </Link>
+                      {!collapsed && (
+                        <span className="relative z-10">{item.label}</span>
+                      )}
+                    </Link>
+                  </motion.div>
                 );
               })}
             </div>
           </div>
         ))}
 
-        {/* Settings */}
+        {/* PREFERENCES */}
         <div className="border-t border-[#263D60] pt-5">
           {!collapsed && (
             <p className="mb-3 px-3 text-[10px] font-extrabold tracking-[0.18em] text-[#93C5FD]">
@@ -152,24 +194,30 @@ function SidebarContent({
             </p>
           )}
 
-          <Link
-            href="/settings"
-            onClick={onNavigate}
-            title={collapsed ? "Settings" : undefined}
-            aria-current={isActive("/settings") ? "page" : undefined}
-            className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-all ${
-              isActive("/settings")
-                ? "bg-[#2563EB] text-white"
-                : "text-[#BFDBFE] hover:bg-[#1E3A5F] hover:text-white"
-            } ${collapsed ? "justify-center" : ""}`}
-          >
-            <Settings size={19} className="shrink-0" />
-            {!collapsed && "Settings"}
-          </Link>
+          <motion.div whileHover={{ x: collapsed ? 0 : 4 }}>
+            <Link
+              href="/settings"
+              onClick={onNavigate}
+              title={collapsed ? "Settings" : undefined}
+              aria-current={isActive("/settings") ? "page" : undefined}
+              className={`relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-all ${
+                isActive("/settings")
+                  ? "bg-[#2563EB] text-white"
+                  : "text-[#BFDBFE] hover:bg-[#1E3A5F] hover:text-white"
+              } ${collapsed ? "justify-center" : ""}`}
+            >
+              {isActive("/settings") && (
+                <span className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-[#D6A84B]" />
+              )}
+
+              <Settings size={19} className="shrink-0" />
+              {!collapsed && "Settings"}
+            </Link>
+          </motion.div>
         </div>
       </div>
 
-      {/* Sidebar footer */}
+      {/* SIDEBAR FOOTER */}
       <div className="shrink-0 border-t border-[#263D60] p-4">
         <Link
           href="/login"
@@ -195,9 +243,19 @@ export default function AppShell({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const pathname = usePathname();
+
+  const currentPage =
+    pageTitles[pathname] ??
+    Object.entries(pageTitles).find(
+      ([path]) => path !== "/" && pathname.startsWith(`${path}/`)
+    )?.[1] ??
+    "Business Workspace";
+
   return (
     <div className="flex min-h-screen bg-[#F8FBFF] text-[#142B4A] dark:bg-[#0B1930] dark:text-white">
-      {/* Desktop sidebar */}
+
+      {/* DESKTOP SIDEBAR */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-[#263D60] bg-[#142B4A] transition-[width] duration-300 lg:flex ${
           collapsed ? "w-20" : "w-72"
@@ -205,7 +263,7 @@ export default function AppShell({
       >
         <SidebarContent collapsed={collapsed} />
 
-        {/* Collapse button */}
+        {/* COLLAPSE BUTTON */}
         <button
           type="button"
           onClick={() => setCollapsed((value) => !value)}
@@ -220,33 +278,51 @@ export default function AppShell({
         </button>
       </aside>
 
-      {/* Mobile navigation */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            aria-label="Close navigation overlay"
-            onClick={() => setMobileOpen(false)}
-            className="absolute inset-0 bg-[#081426]/75 backdrop-blur-sm"
-          />
-
-          <aside className="absolute inset-y-0 left-0 flex w-[min(18rem,85vw)] flex-col border-r border-[#263D60] bg-[#142B4A] shadow-2xl">
-            <SidebarContent
-              collapsed={false}
-              onNavigate={() => setMobileOpen(false)}
-              onClose={() => setMobileOpen(false)}
+      {/* MOBILE NAVIGATION */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 lg:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <button
+              type="button"
+              aria-label="Close navigation overlay"
+              onClick={() => setMobileOpen(false)}
+              className="absolute inset-0 bg-[#081426]/75 backdrop-blur-sm"
             />
-          </aside>
-        </div>
-      )}
 
-      {/* Main application */}
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 32,
+              }}
+              className="absolute inset-y-0 left-0 flex w-[min(18rem,85vw)] flex-col border-r border-[#263D60] bg-[#142B4A] shadow-2xl"
+            >
+              <SidebarContent
+                collapsed={false}
+                onNavigate={() => setMobileOpen(false)}
+                onClose={() => setMobileOpen(false)}
+              />
+            </motion.aside>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MAIN APPLICATION */}
       <div
         className={`flex min-h-screen min-w-0 flex-1 flex-col transition-[margin] duration-300 ${
           collapsed ? "lg:ml-20" : "lg:ml-72"
         }`}
       >
-        {/* Header */}
+
+        {/* HEADER */}
         <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b border-[#D7E6F8] bg-white/95 px-4 backdrop-blur-xl dark:border-[#263D60] dark:bg-[#102440]/95 sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
@@ -266,7 +342,7 @@ export default function AppShell({
                 />
 
                 <p className="truncate text-sm font-extrabold text-[#142B4A] dark:text-white sm:text-base">
-                  Business Workspace
+                  {currentPage}
                 </p>
               </div>
 
@@ -276,7 +352,7 @@ export default function AppShell({
             </div>
           </div>
 
-          {/* Header actions */}
+          {/* HEADER ACTIONS */}
           <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             <Link
               href="/reminders"
@@ -305,18 +381,15 @@ export default function AppShell({
           </div>
         </header>
 
-        {/* Page content */}
+        {/* PAGE CONTENT */}
         <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
           {children}
         </main>
 
-        {/* Footer */}
+        {/* FOOTER */}
         <footer className="border-t border-[#D7E6F8] bg-white px-5 py-5 text-center dark:border-[#263D60] dark:bg-[#102440]">
           <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-[#58708F] dark:text-[#A9BEDA]">
-            <Sparkles
-              size={14}
-              className="text-[#D6A84B]"
-            />
+            <Sparkles size={14} className="text-[#D6A84B]" />
             <span>
               © 2026 Duego · Business Document Intelligence
             </span>
