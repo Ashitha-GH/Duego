@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from razorpay_client import razorpay_client
+from razorpay_client import razorpay_client, RAZORPAY_KEY_ID
 from schemas import (
     UserCreate,
     UserResponse,
@@ -42,6 +42,8 @@ from schemas import (
     PaymentRecipientResponse,
     PaymentOrderCreate,
     PaymentTransactionResponse,
+    RazorpayPaymentVerify,
+    RazorpayOrderResponse,
 )
 
 # =========================================================
@@ -2081,18 +2083,21 @@ def create_payment_recipient(
     return new_recipient
 
 
+
 # =========================================================
 # CREATE RAZORPAY PAYMENT ORDER
 # =========================================================
 
-import uuid
-
-@app.post("/payments/create-order")
+@app.post(
+    "/payments/create-order",
+    response_model=RazorpayOrderResponse,
+)
 def create_razorpay_order(
     order_data: PaymentOrderCreate,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    # 1. Verify payment belongs to logged-in user
     payment = (
         db.query(models.Payment)
         .join(models.Document)
@@ -2105,36 +2110,97 @@ def create_razorpay_order(
 
     if payment is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=404,
             detail="Payment not found",
         )
 
     if payment.status != "PENDING":
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Only pending payments can be processed",
         )
 
-    transaction_reference = str(uuid.uuid4())
-
-    amount_in_paise = payment.amount * 100
-
-    razorpay_order = razorpay_client.order.create(
-        {
-            "amount": amount_in_paise,
-            "currency": "INR",
-            "receipt": transaction_reference,
-        }
+    # 2. Verify recipient belongs to logged-in user
+    recipient = (
+        db.query(models.PaymentRecipient)
+        .filter(
+            models.PaymentRecipient.id == order_data.recipient_id,
+            models.PaymentRecipient.user_id == current_user.id,
+            models.PaymentRecipient.is_active == True,
+        )
+        .first()
     )
 
-    return {
-        "message": "Razorpay order created successfully",
-        "transaction_reference": transaction_reference,
-        "razorpay_order_id": razorpay_order["id"],
-        "amount": amount_in_paise,
-        "currency": "INR",
-        "razorpay_key_id": os.getenv("RAZORPAY_KEY_ID"),
-    }
+    if recipient is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Active payment recipient not found",
+        )
+
+    # 3. Create transaction record
+    transaction_reference = str(uuid.uuid4())
+
+    new_transaction = models.PaymentTransaction(
+        payment_id=payment.id,
+        recipient_id=recipient.id,
+        transaction_reference=transaction_reference,
+        payment_method="GATEWAY",
+        gateway_provider="RAZORPAY",
+        amount=payment.amount,
+        currency="INR",
+        status="INITIATED",
+    )
+
+    db.add(new_transaction)
+    db.commit()
+    db.refresh(new_transaction)
+
+    # 4. Create Razorpay order
+    try:
+        razorpay_order = razorpay_client.order.create({
+            "amount": payment.amount * 100,
+            "currency": "INR",
+            "receipt": transaction_reference,
+        })
+
+        new_transaction.gateway_order_id = razorpay_order["id"]
+        new_transaction.status = "ORDER_CREATED"
+
+        db.commit()
+        db.refresh(new_transaction)
+
+        return {
+    "id": new_transaction.id,
+    "payment_id": new_transaction.payment_id,
+    "transaction_reference": new_transaction.transaction_reference,
+    "gateway_order_id": new_transaction.gateway_order_id,
+    "amount": new_transaction.amount,
+    "amount_in_paise": new_transaction.amount * 100,
+    "currency": new_transaction.currency,
+    "status": new_transaction.status,
+    "razorpay_key_id": RAZORPAY_KEY_ID,
+}
+
+    except Exception:
+        db.rollback()
+
+        failed_transaction = (
+            db.query(models.PaymentTransaction)
+            .filter(
+                models.PaymentTransaction.id == new_transaction.id
+            )
+            .first()
+        )
+
+        if failed_transaction:
+            failed_transaction.status = "FAILED"
+            db.commit()
+
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to create Razorpay order",
+        )
+
 
 # =========================================================
 # GET PAYMENT RECIPIENTS
@@ -2155,3 +2221,107 @@ def get_payment_recipients(
     )
 
     return recipients
+
+
+@app.post("/payments/verify")
+def verify_razorpay_payment(
+    verification: RazorpayPaymentVerify,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    transaction = (
+        db.query(models.PaymentTransaction)
+        .join(models.Payment)
+        .join(models.Document)
+        .filter(
+            models.PaymentTransaction.gateway_order_id
+            == verification.razorpay_order_id,
+            models.Document.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if transaction is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Payment transaction not found",
+        )
+
+    if transaction.status == "PAID":
+        raise HTTPException(
+            status_code=400,
+            detail="Payment is already verified",
+        )
+
+    try:
+        # 1. Verify Razorpay signature
+        razorpay_client.utility.verify_payment_signature({
+            "razorpay_order_id": verification.razorpay_order_id,
+            "razorpay_payment_id": verification.razorpay_payment_id,
+            "razorpay_signature": verification.razorpay_signature,
+        })
+
+        # 2. Fetch payment details directly from Razorpay
+        razorpay_payment = razorpay_client.payment.fetch(
+            verification.razorpay_payment_id
+        )
+
+        # 3. Verify payment belongs to this order
+        if razorpay_payment.get("order_id") != transaction.gateway_order_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Payment does not match the order",
+            )
+
+        # 4. Verify payment is captured
+        if razorpay_payment.get("status") != "captured":
+            raise HTTPException(
+                status_code=400,
+                detail="Payment has not been captured",
+            )
+
+        # 5. Verify amount and currency
+        expected_amount = transaction.amount * 100
+
+        if razorpay_payment.get("amount") != expected_amount:
+            raise HTTPException(
+                status_code=400,
+                detail="Payment amount mismatch",
+            )
+
+        if razorpay_payment.get("currency") != transaction.currency:
+            raise HTTPException(
+                status_code=400,
+                detail="Payment currency mismatch",
+            )
+
+        # 6. Update database only after all checks pass
+        transaction.gateway_payment_id = verification.razorpay_payment_id
+        transaction.status = "PAID"
+        transaction.payment.status = "PAID"
+
+        db.commit()
+        db.refresh(transaction)
+
+        return {
+            "message": "Payment verified successfully",
+            "transaction_id": transaction.id,
+            "payment_id": transaction.payment_id,
+            "status": transaction.status,
+        }
+
+    except razorpay.errors.SignatureVerificationError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Razorpay payment signature",
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to verify payment with Razorpay",
+        )

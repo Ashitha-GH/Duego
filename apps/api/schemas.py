@@ -107,3 +107,21 @@ class PaymentTransactionResponse(BaseModel):
     status: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RazorpayPaymentVerify(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
+
+class RazorpayOrderResponse(BaseModel):
+    id: int
+    payment_id: int
+    transaction_reference: str
+    gateway_order_id: str
+    amount: int
+    amount_in_paise: int
+    currency: str
+    status: str
+    razorpay_key_id: str
