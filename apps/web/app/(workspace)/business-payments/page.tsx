@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { apiRequest } from "@/lib/api";
 import { motion } from "motion/react";
 import {
   Wallet,
@@ -40,6 +41,15 @@ type Payment = {
   paidDate?: string;
   method: string;
   status: PaymentStatus;
+};
+type ApiPayment = {
+  id: number;
+  document_id: number;
+  title: string;
+  description: string | null;
+  amount: number;
+  due_date: string;
+  status: string;
 };
 
 type PaymentMethod =
@@ -188,8 +198,7 @@ const emptyForm = {
 };
 
 export default function BusinessPaymentsPage() {
-  const [payments, setPayments] = useState<Payment[]>(initialPayments);
-
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -205,6 +214,51 @@ export default function BusinessPaymentsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    async function loadPayments() {
+      const token = localStorage.getItem("access_token");
+
+      if (!token) {
+        setNotice("Please sign in to view your payments.");
+        return;
+      }
+
+      try {
+        const data = (await apiRequest(
+          "/payments",
+          { method: "GET" },
+          token
+        )) as ApiPayment[];
+
+        const mappedPayments: Payment[] = data.map((item) => ({
+          id: String(item.id),
+          title: item.title,
+          reference: item.description || `PAY-${item.id}`,
+          category: "Other",
+          amount: item.amount,
+          dueDate: item.due_date,
+          method: "Not selected",
+          status:
+            item.status.toUpperCase() === "PAID"
+              ? "Paid"
+              : item.status.toUpperCase() === "OVERDUE"
+                ? "Overdue"
+                : "Pending",
+        }));
+
+        setPayments(mappedPayments);
+      } catch (error) {
+        setNotice(
+          error instanceof Error
+            ? error.message
+            : "Unable to load payments."
+        );
+      }
+    }
+
+    loadPayments();
+  }, []);
 
   const paidPayments = payments.filter(
     (payment) => payment.status === "Paid"
