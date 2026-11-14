@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -21,6 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { apiRequest } from "@/lib/api";
 
 type AuthFormProps = {
   mode: "login" | "register";
@@ -28,6 +30,7 @@ type AuthFormProps = {
 
 export default function AuthForm({ mode }: AuthFormProps) {
   const isRegister = mode === "register";
+  const router = useRouter();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -40,33 +43,61 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  
+async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    setError("");
-    setMessage("");
+  setError("");
+  setMessage("");
 
-    if (isRegister && name.trim().length < 2) {
-      setError("Please enter your full name.");
-      return;
+  if (isRegister && name.trim().length < 2) {
+    setError("Please enter your full name.");
+    return;
+  }
+
+  if (password.length < 8) {
+    setError("Password must contain at least 8 characters.");
+    return;
+  }
+
+  if (isRegister && password !== confirmPassword) {
+    setError("Passwords do not match.");
+    return;
+  }
+
+  try {
+    if (isRegister) {
+      await apiRequest("/users/register", {
+        method: "POST",
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      setMessage("Registration successful! You can now sign in.");
+    } else {
+      const formData = new URLSearchParams();
+      formData.append("username", email.trim());
+      formData.append("password", password);
+
+      const data = await apiRequest("/users/login", {
+        method: "POST",
+        body: formData,
+      });
+
+      localStorage.setItem("access_token", data.access_token);
+      router.push("/dashboard");
+
+      setMessage("Login successful! Your account is authenticated.");
     }
-
-    if (password.length < 8) {
-      setError("Password must contain at least 8 characters.");
-      return;
-    }
-
-    if (isRegister && password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    setMessage(
-      isRegister
-        ? "Your registration form is valid. Account creation will be available after backend authentication is connected."
-        : "Your login form is valid. Sign-in will be available after backend authentication is connected."
+  } catch (err) {
+    setError(
+      err instanceof Error ? err.message : "Something went wrong."
     );
   }
+}
+
 
   const features = [
     {
