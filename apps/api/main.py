@@ -22,6 +22,7 @@ from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 import models
@@ -160,6 +161,16 @@ def generate_document_analysis(extracted_text: str) -> dict:
 app = FastAPI(
     title="Duego API",
     version="0.1.0",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -1010,6 +1021,7 @@ def create_payment(
 # GET ALL PAYMENTS
 # =========================================================
 
+
 @app.get("/payments")
 def get_payments(
     current_user: models.User = Depends(get_current_user),
@@ -1027,7 +1039,19 @@ def get_payments(
         .all()
     )
 
-    return payments
+    return [
+        {
+            "id": payment.id,
+            "document_id": payment.document_id,
+            "title": payment.document.name,
+            "description": payment.description,
+            "amount": payment.amount,
+            "due_date": payment.due_date.isoformat(),
+            "status": payment.status,
+        }
+        for payment in payments
+    ]
+
 # =========================================================
 # UPDATE PAYMENT
 # =========================================================
