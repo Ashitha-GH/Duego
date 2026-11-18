@@ -33,6 +33,7 @@ type PaymentStatus = "Paid" | "Pending" | "Overdue";
 
 type Payment = {
   id: string;
+  documentId?: number;
   title: string;
   reference: string;
   category: string;
@@ -51,6 +52,12 @@ type ApiPayment = {
   due_date: string;
   status: string;
 };
+
+type ApiDocument = {
+  id: number;
+  name: string;
+};
+
 
 type PaymentMethod =
   | "PhonePe"
@@ -189,7 +196,9 @@ const paymentMethods: {
   },
 ];
 
+
 const emptyForm = {
+  documentId: "",
   title: "",
   reference: "",
   category: "Vendor",
@@ -197,8 +206,10 @@ const emptyForm = {
   dueDate: "",
 };
 
+
 export default function BusinessPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [documents, setDocuments] = useState<ApiDocument[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -225,14 +236,25 @@ export default function BusinessPaymentsPage() {
       }
 
       try {
-        const data = (await apiRequest(
-          "/payments",
-          { method: "GET" },
-          token
-        )) as ApiPayment[];
+  // 1. Load documents from backend
+  const documentData = (await apiRequest(
+    "/documents",
+    { method: "GET" },
+    token
+  )) as ApiDocument[];
+
+  setDocuments(documentData);
+
+  // 2. Load payments from backend
+  const data = (await apiRequest(
+    "/payments",
+    { method: "GET" },
+    token
+  )) as ApiPayment[];
 
         const mappedPayments: Payment[] = data.map((item) => ({
           id: String(item.id),
+          documentId: item.document_id,
           title: item.title,
           reference: item.description || `PAY-${item.id}`,
           category: "Other",
@@ -319,37 +341,63 @@ export default function BusinessPaymentsPage() {
   }
 
   function openEditForm(payment: Payment) {
-    setEditingId(payment.id);
-    setForm({
-      title: payment.title,
-      reference: payment.reference,
-      category: payment.category,
-      amount: String(payment.amount),
-      dueDate: payment.dueDate,
-    });
-    setSelectedPayment(null);
-    setShowForm(true);
+  setEditingId(payment.id);
+
+  setForm({
+    documentId: String(payment.documentId ?? ""),
+    title: payment.title,
+    reference: payment.reference,
+    category: payment.category,
+    amount: String(payment.amount),
+    dueDate: payment.dueDate,
+  });
+
+  setSelectedPayment(null);
+  setShowForm(true);
+}
+
+  
+
+async function savePayment(event: React.FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  const amount = Number(form.amount);
+  const documentId = Number(form.documentId);
+
+  if (!Number.isInteger(amount) || amount <= 0) {
+    setNotice("Please enter a valid whole-number amount in rupees.");
+    return;
   }
 
-  function savePayment(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const token = localStorage.getItem("access_token");
 
-    const amount = Number(form.amount);
+  if (!token) {
+    setNotice("Please sign in before saving a payment.");
+    return;
+  }
 
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setNotice("Please enter a valid payment amount.");
-      return;
-    }
+  // EDIT EXISTING PAYMENT
+  if (editingId) {
+    try {
+      await apiRequest(
+        `/payments/${editingId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            amount: amount,
+            due_date: form.dueDate,
+            description: form.reference.trim() || null,
+          }),
+        },
+        token
+      );
 
-    if (editingId) {
       setPayments((current) =>
         current.map((payment) =>
           payment.id === editingId
             ? {
                 ...payment,
-                title: form.title.trim(),
-                reference: form.reference.trim(),
-                category: form.category,
+                reference: form.reference.trim() || `PAY-${editingId}`,
                 amount,
                 dueDate: form.dueDate,
               }
@@ -357,27 +405,85 @@ export default function BusinessPaymentsPage() {
         )
       );
 
-      setNotice("Payment record updated in this browser preview.");
-    } else {
-      const newPayment: Payment = {
-        id: `PAY-${Date.now()}`,
-        title: form.title.trim(),
-        reference: form.reference.trim(),
-        category: form.category,
-        amount,
-        dueDate: form.dueDate,
-        method: "Not selected",
-        status: "Pending",
-      };
+      setNotice("Payment successfully updated in the database!");
 
-      setPayments((current) => [newPayment, ...current]);
-      setNotice("Payment record added in this browser preview.");
+      setShowForm(false);
+      setEditingId(null);
+      setForm(emptyForm);
+
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Unable to update payment. Please try again."
+      );
     }
+
+    return;
+  }
+
+  // ADD NEW PAYMENT
+  if (!documentId) {
+    setNotice("Please select a document.");
+    return;
+  }
+
+  const selectedDocument = documents.find(
+    (document) => document.id === documentId
+  );
+
+  if (!selectedDocument) {
+    setNotice("Selected document was not found.");
+    return;
+  }
+
+  try {
+    const createdPayment = await apiRequest(
+      "/payments",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          document_id: documentId,
+          amount: amount,
+          due_date: form.dueDate,
+          status: "PENDING",
+          description: form.reference.trim() || null,
+        }),
+      },
+      token
+    );
+
+    const newPayment: Payment = {
+      id: String(createdPayment.id),
+      documentId: documentId,
+      title: selectedDocument.name,
+      reference:
+        createdPayment.description || `PAY-${createdPayment.id}`,
+      category: form.category,
+      amount: createdPayment.amount,
+      dueDate: createdPayment.due_date,
+      method: "Not selected",
+      status: "Pending",
+    };
+
+    setPayments((current) => [newPayment, ...current]);
+
+    setNotice("Payment successfully saved to the database!");
 
     setShowForm(false);
     setEditingId(null);
     setForm(emptyForm);
+
+  } catch (error) {
+    setNotice(
+      error instanceof Error
+        ? error.message
+        : "Unable to save payment. Please try again."
+    );
   }
+}
+
+
 
   function deletePayment(payment: Payment) {
     setPayments((current) =>
@@ -839,6 +945,29 @@ export default function BusinessPaymentsPage() {
             </div>
 
             <div className="mt-6 space-y-4">
+              <div>
+  <label className="mb-2 block text-sm font-semibold text-[#142B4A] dark:text-white">
+    Select Document
+  </label>
+
+  <select
+    required
+    value={form.documentId}
+    onChange={(event) =>
+      setForm({ ...form, documentId: event.target.value })
+    }
+    className="h-12 w-full rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] px-4 text-sm text-[#142B4A] outline-none dark:border-[#263D60] dark:bg-[#203D65] dark:text-white"
+  >
+    <option value="">Choose a document</option>
+
+    {documents.map((document) => (
+      <option key={document.id} value={document.id}>
+        {document.name}
+      </option>
+    ))}
+  </select>
+</div>
+              
               <div>
                 <label className="mb-2 block text-sm font-semibold text-[#142B4A] dark:text-white">
                   Payment title
