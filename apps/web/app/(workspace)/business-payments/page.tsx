@@ -485,13 +485,40 @@ async function savePayment(event: React.FormEvent<HTMLFormElement>) {
 
 
 
-  function deletePayment(payment: Payment) {
+  
+async function deletePayment(payment: Payment) {
+  const token = localStorage.getItem("access_token");
+
+  if (!token) {
+    setNotice("Please sign in before deleting a payment.");
+    return;
+  }
+
+  try {
+    await apiRequest(
+      `/payments/${payment.id}`,
+      {
+        method: "DELETE",
+      },
+      token
+    );
+
     setPayments((current) =>
       current.filter((item) => item.id !== payment.id)
     );
+
     setSelectedPayment(null);
-    setNotice("Payment record deleted from this browser preview.");
+    setNotice("Payment successfully deleted from the database!");
+
+  } catch (error) {
+    setNotice(
+      error instanceof Error
+        ? error.message
+        : "Unable to delete payment. Please try again."
+    );
   }
+}
+
 
   function openPaymentMethods(payment: Payment) {
     setSelectedPayment(payment);
@@ -547,17 +574,20 @@ async function savePayment(event: React.FormEvent<HTMLFormElement>) {
         </div>
       </section>
 
-      {/* PREVIEW NOTICE */}
-      <div className="flex items-start gap-3 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] p-4 dark:border-[#263D60] dark:bg-[#142B4A]">
-        <ShieldCheck size={20} className="mt-0.5 shrink-0 text-[#2563EB]" />
+      
+{/* PAYMENT INTEGRATION NOTICE */}
+<div className="flex items-start gap-3 rounded-xl border border-[#D7E6F8] bg-[#EFF6FF] p-4 dark:border-[#263D60] dark:bg-[#142B4A]">
+  <ShieldCheck size={20} className="mt-0.5 shrink-0 text-[#2563EB]" />
 
-        <p className="text-sm leading-6 text-[#142B4A] dark:text-[#DBEAFE]">
-          <strong>Frontend preview:</strong> Payment records added
-          or edited here are stored only in the current page state.
-          Actual UPI navigation, QR generation, gateway checkout
-          and transaction verification require backend integration.
-        </p>
-      </div>
+  <p className="text-sm leading-6 text-[#142B4A] dark:text-[#DBEAFE]">
+    <strong>Database connected:</strong> Payment records are
+    securely loaded, added, edited and deleted through the
+    Duego backend. UPI navigation, QR generation, gateway
+    checkout and automatic transaction verification are
+    upcoming features.
+  </p>
+</div>
+
 
       {/* NOTIFICATION */}
       {notice && (
@@ -918,6 +948,7 @@ async function savePayment(event: React.FormEvent<HTMLFormElement>) {
           className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-[#142B4A]/75 p-4"
           onClick={() => setShowForm(false)}
         >
+          
           <form
             onSubmit={savePayment}
             className="my-auto w-full max-w-lg rounded-2xl border border-[#D7E6F8] bg-white p-6 shadow-2xl dark:border-[#263D60] dark:bg-[#142B4A]"
@@ -952,6 +983,7 @@ async function savePayment(event: React.FormEvent<HTMLFormElement>) {
 
   <select
     required
+    disabled={!!editingId}
     value={form.documentId}
     onChange={(event) =>
       setForm({ ...form, documentId: event.target.value })
@@ -976,6 +1008,7 @@ async function savePayment(event: React.FormEvent<HTMLFormElement>) {
                 <input
                   required
                   maxLength={100}
+                  disabled={!!editingId}
                   value={form.title}
                   onChange={(event) =>
                     setForm({ ...form, title: event.target.value })
@@ -1008,6 +1041,7 @@ async function savePayment(event: React.FormEvent<HTMLFormElement>) {
                 </label>
 
                 <select
+                  disabled={!!editingId}
                   value={form.category}
                   onChange={(event) =>
                     setForm({ ...form, category: event.target.value })
@@ -1081,7 +1115,7 @@ async function savePayment(event: React.FormEvent<HTMLFormElement>) {
             </div>
 
             <p className="mt-4 text-center text-xs text-[#58708F] dark:text-[#A9BEDA]">
-              This record is saved in page state only, not in the database.
+              Payment records are saved securely in the Duego database.
             </p>
           </form>
         </div>

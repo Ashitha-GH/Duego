@@ -97,6 +97,24 @@ class PaymentOrderCreate(BaseModel):
     recipient_id: int
 
 
+class DirectUPIPaymentCreate(BaseModel):
+    payment_id: int
+    recipient_id: int
+    selected_upi_app: str
+
+
+class DirectUPIPaymentResponse(BaseModel):
+    transaction_id: int
+    payment_id: int
+    transaction_reference: str
+    recipient_name: str
+    recipient_upi_id: str
+    amount: int
+    currency: str
+    status: str
+    upi_uri: str
+
+
 class PaymentTransactionResponse(BaseModel):
     id: int
     payment_id: int
