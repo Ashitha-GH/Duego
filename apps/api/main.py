@@ -1,5 +1,6 @@
 import os
 import uuid
+from urllib.parse import urlencode
 
 import json
 
@@ -45,6 +46,8 @@ from schemas import (
     PaymentTransactionResponse,
     RazorpayPaymentVerify,
     RazorpayOrderResponse,
+    DirectUPIPaymentCreate,
+    DirectUPIPaymentResponse,
 )
 
 # =========================================================
@@ -2224,7 +2227,140 @@ def create_razorpay_order(
             status_code=502,
             detail="Unable to create Razorpay order",
         )
+# =========================================================
+# CREATE DIRECT UPI PAYMENT
+# =========================================================
 
+@app.post(
+    "/payments/direct-upi",
+    response_model=DirectUPIPaymentResponse,
+)
+def create_direct_upi_payment(
+    payment_data: DirectUPIPaymentCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # 1. Verify payment belongs to logged-in user
+    payment = (
+        db.query(models.Payment)
+        .join(models.Document)
+        .filter(
+            models.Payment.id == payment_data.payment_id,
+            models.Document.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if payment is None:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    if payment.status != "PENDING":
+        raise HTTPException(
+            status_code=400,
+            detail="Only pending payments can be processed",
+        )
+
+    # 2. Verify recipient belongs to logged-in user
+    recipient = (
+        db.query(models.PaymentRecipient)
+        .filter(
+            models.PaymentRecipient.id == payment_data.recipient_id,
+            models.PaymentRecipient.user_id == current_user.id,
+            models.PaymentRecipient.is_active == True,
+        )
+        .first()
+    )
+
+    if recipient is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Active payment recipient not found",
+        )
+
+    # 3. Validate recipient UPI ID
+    upi_id = (recipient.upi_id or "").strip()
+
+    if (
+        not upi_id
+        or upi_id.count("@") != 1
+        or " " in upi_id
+        or upi_id.startswith("@")
+        or upi_id.endswith("@")
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Recipient has an invalid UPI ID",
+        )
+
+    # 4. Validate selected UPI app
+    allowed_apps = ["PhonePe", "Google Pay", "Paytm", "Other UPI"]
+
+    if payment_data.selected_upi_app not in allowed_apps:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid UPI app selection",
+        )
+
+    # 5. Create transaction
+    transaction_reference = str(uuid.uuid4())
+
+    new_transaction = models.PaymentTransaction(
+        payment_id=payment.id,
+        recipient_id=recipient.id,
+        transaction_reference=transaction_reference,
+        payment_method="DIRECT_UPI",
+        selected_upi_app=payment_data.selected_upi_app,
+        amount=payment.amount,
+        currency="INR",
+        status="INITIATED",
+    )
+
+    db.add(new_transaction)
+    db.flush()
+
+    # 6. Record payment initiation event
+    db.add(
+        models.PaymentEvent(
+            transaction_id=new_transaction.id,
+            event_type="UPI_PAYMENT_INITIATED",
+            source="UPI",
+            event_reference=transaction_reference,
+        )
+    )
+
+    # 7. Generate UPI payment URI
+    upi_parameters = {
+        "pa": upi_id,
+        "pn": recipient.name,
+        "am": f"{payment.amount:.2f}",
+        "cu": "INR",
+        "tr": transaction_reference,
+        "tn": f"Duego payment {transaction_reference[:8]}",
+    }
+
+    upi_uri = "upi://pay?" + urlencode(upi_parameters)
+
+    try:
+        db.commit()
+        db.refresh(new_transaction)
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to create UPI payment request",
+        )
+
+    return {
+        "transaction_id": new_transaction.id,
+        "payment_id": payment.id,
+        "transaction_reference": transaction_reference,
+        "recipient_name": recipient.name,
+        "recipient_upi_id": upi_id,
+        "amount": payment.amount,
+        "currency": "INR",
+        "status": new_transaction.status,
+        "upi_uri": upi_uri,
+    }
 
 # =========================================================
 # GET PAYMENT RECIPIENTS
