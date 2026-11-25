@@ -45,3 +45,6 @@ Thumbs.db
 
 # Local Salesforce configuration
 .sf/
+
+# User-uploaded documents
+apps/api/uploads/
